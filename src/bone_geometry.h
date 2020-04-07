@@ -2,6 +2,7 @@
 #define BONE_GEOMETRY_H
 
 #include <ostream>
+#include <iostream>
 #include <vector>
 #include <string>
 #include <map>
@@ -11,6 +12,7 @@
 #include <mmdadapter.h>
 
 class TextureToRender;
+struct Bone;
 
 struct BoundingBox {
 	BoundingBox()
@@ -45,6 +47,8 @@ struct Joint {
 	glm::vec3 init_position;        // initial position of this joint
 	glm::vec3 init_rel_position;    // initial relative position to its parent
 	std::vector<int> children;
+
+	std::vector<Bone> boneChildren;
 };
 
 struct Configuration {
@@ -69,6 +73,27 @@ struct LineMesh {
 	std::vector<glm::uvec2> indices;
 };
 
+struct Bone {
+
+	Bone(int sJoint, int eJoint){
+		startJoint = sJoint;
+		endJoint = eJoint;
+	}
+
+	int startJoint;
+	int endJoint;
+
+	float boneLength;
+
+	glm::vec3 localTranslation;
+	glm::fquat localRotation;
+
+	glm::vec3 globalTranslation;
+	glm::fquat globalRotation;
+
+	LineMesh* boneLine;
+};
+
 struct Skeleton {
 	std::vector<Joint> joints;
 
@@ -79,6 +104,24 @@ struct Skeleton {
 	const glm::fquat* collectJointRot() const;
 
 	// FIXME: create skeleton and bone data structures
+	void initBoneIndicies(std::vector<glm::uvec2>& boneIndicies) {
+		//bone_indices.emplace_back(joint.joint_index, joint.parent_index);
+		boneIndiciesRecursion(boneIndicies, 0);
+		int nextIndex = joints[0].boneChildren[0].endJoint;
+		//std::cout<< "First one " << nextIndex << std::endl;
+		//std::cout << "why " << boneIndicies.size() << std::endl;
+
+	}
+
+	void boneIndiciesRecursion(std::vector<glm::uvec2>& boneIndicies, int index) {
+		for(int i = 0; i < (int)joints[index].boneChildren.size(); i++) {
+			
+			int nextIndex = joints[index].boneChildren[i].endJoint;
+			boneIndicies.emplace_back(nextIndex, index);
+			std::cout << "index =  " << index << " i = " << i << " nextIndex= " << nextIndex << std::endl;
+			boneIndiciesRecursion(boneIndicies, nextIndex);
+		}
+	}
 };
 
 struct Mesh {

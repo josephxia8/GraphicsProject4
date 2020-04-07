@@ -79,6 +79,12 @@ void Mesh::loadPmd(const std::string& fn)
 	while (mr.getJoint(index, wcoord, parentID)) {
 		Joint toAdd = Joint(index, wcoord, parentID);
 		skeleton.joints.push_back(toAdd);
+		if (parentID >= 0){
+			//Joint* startJoint = &skeleton.joints[parentID];
+			//std::cout << parentID << " " << index << std::endl;
+			Bone newBone = Bone(parentID, index);
+			skeleton.joints[parentID].boneChildren.push_back(newBone);
+		}
 		++index;
 	}
 }

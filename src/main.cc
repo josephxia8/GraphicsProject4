@@ -227,11 +227,13 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < (int)mesh.skeleton.joints.size(); i++) {
 		bone_vertex_id.emplace_back(i);
 	}
+	/*
 	for (const auto& joint: mesh.skeleton.joints) {
 		if (joint.parent_index < 0)
 			continue;
 		bone_indices.emplace_back(joint.joint_index, joint.parent_index);
-	}
+	}*/
+	mesh.skeleton.initBoneIndicies(bone_indices);
 	RenderDataInput bone_pass_input;
 	bone_pass_input.assign(0, "jid", bone_vertex_id.data(), bone_vertex_id.size(), 1, GL_UNSIGNED_INT);
 	bone_pass_input.assignIndex(bone_indices.data(), bone_indices.size(), 2);
