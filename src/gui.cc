@@ -1,5 +1,7 @@
 #include "gui.h"
 #include "config.h"
+#include "ray.h"
+#include <glm/gtx/io.hpp>
 #include <jpegio.h>
 #include "bone_geometry.h"
 #include <iostream>
@@ -128,7 +130,27 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	}
 
 	// FIXME: highlight bones that have been moused over
-	current_bone_ = -1;
+	//std::cout << "x = " << current_x_ << " y = " << current_y_ << std::endl;
+	glm::vec3 clickPos1 = glm::vec3(current_x_, current_y_, 0);
+	glm::vec3 clickPos2 = glm::vec3(current_x_, current_y_, 100);
+
+	clickPos1 -= eye_;
+	clickPos2 -= eye_;
+
+	//clickPos1 = glm::unProject(clickPos1, model_matrix_, projection_matrix_, viewport);
+	//clickPos2 = glm::unProject(clickPos2, model_matrix_, projection_matrix_, viewport);
+
+	ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1));
+	glm::dvec3 u = glm::dvec3(1, 0, 0);
+    glm::dvec3 v = glm::dvec3(0, 1, 0);
+	//double x = current_x_ - 0.5;
+	//double y -= current_y_ - 0.5;
+	//glm::dvec3 dir = glm::normalize(look_ + x * u + y * v);
+	r.setPosition(eye_);
+	r.setDirection(glm::normalize(clickPos2 - clickPos1));
+	//std::cout << "ray pos = " << r.getPosition() << " ray dir " << r.getDirection() << std::endl;
+
+	current_bone_ = 0;
 }
 
 void GUI::mouseButtonCallback(int button, int action, int mods)

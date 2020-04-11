@@ -1,6 +1,7 @@
 #ifndef BONE_GEOMETRY_H
 #define BONE_GEOMETRY_H
 
+#include "ray.h"
 #include <ostream>
 #include <iostream>
 #include <vector>
@@ -9,7 +10,6 @@
 #include <limits>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <mmdadapter.h>
 
 class TextureToRender;
 struct Bone;
@@ -20,6 +20,46 @@ struct BoundingBox {
 		max(glm::vec3(std::numeric_limits<float>::max())) {}
 	glm::vec3 min;
 	glm::vec3 max;
+
+	// this was taken from Project 1
+	bool intersect(const ray& r, double& tMin, double& tMax) const
+	{
+		/*
+		* Kay/Kajiya algorithm.
+		*/
+		glm::dvec3 R0 = r.getPosition();
+		glm::dvec3 Rd = r.getDirection();
+		tMin = -1.0e308; // 1.0e308 is close to infinity... close enough
+						// for us!
+		tMax = 1.0e308;
+		double ttemp;
+
+		for (int currentaxis = 0; currentaxis < 3; currentaxis++) {
+			double vd = Rd[currentaxis];
+			// if the ray is parallel to the face's plane (=0.0)
+			if (vd == 0.0)
+				continue;
+			double v1 = min[currentaxis] - R0[currentaxis];
+			double v2 = max[currentaxis] - R0[currentaxis];
+			// two slab intersections
+			double t1 = v1 / vd;
+			double t2 = v2 / vd;
+			if (t1 > t2) { // swap t1 & t2
+				ttemp = t1;
+				t1    = t2;
+				t2    = ttemp;
+			}
+			if (t1 > tMin)
+				tMin = t1;
+			if (t2 < tMax)
+				tMax = t2;
+			if (tMin > tMax)
+				return false; // box is missed
+			if (tMax < RAY_EPSILON)
+				return false; // box is behind ray
+		}
+		return true; // it made it past all 3 axes.
+	}
 };
 
 struct Joint {
@@ -78,6 +118,8 @@ struct Bone {
 	Bone(int sJoint, int eJoint){
 		startJoint = sJoint;
 		endJoint = eJoint;
+
+		
 	}
 
 	int startJoint;
@@ -92,6 +134,7 @@ struct Bone {
 	glm::fquat globalRotation;
 
 	LineMesh* boneLine;
+	BoundingBox bbox;
 };
 
 struct Skeleton {
