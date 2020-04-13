@@ -49,6 +49,14 @@ const char* bone_fragment_shader =
 #include "shaders/bone.frag"
 ;
 
+const char* cylinder_vertex_shader =
+#include "shaders/cylinder.vert"
+;
+
+const char* cylinder_fragment_shader =
+#include "shaders/cylinder.frag"
+;
+
 // FIXME: Add more shaders here.
 
 void ErrorCallback(int error, const char* description) {
@@ -147,11 +155,23 @@ int main(int argc, char* argv[])
 	std::function<const glm::mat4*()> model_data = [&mats]() {
 		return mats.model;
 	};
+
 	std::function<glm::mat4()> view_data = [&mats]() { return *mats.view; };
 	std::function<glm::mat4()> proj_data = [&mats]() { return *mats.projection; };
 	std::function<glm::mat4()> identity_mat = [](){ return glm::mat4(1.0f); };
 	std::function<glm::vec3()> cam_data = [&gui](){ return gui.getCamera(); };
 	std::function<glm::vec4()> lp_data = [&light_position]() { return light_position; };
+
+	std::function<glm::mat4()> b_transform = [&gui, &mesh]() { 
+			glm::mat4 toRet = glm::mat4(1.0f);
+			toRet[1][1] *= mesh.skeleton.bones[gui.getCurrentBone()].boneLength;
+			int startJointId = mesh.skeleton.bones[gui.getCurrentBone()].startJoint;
+			toRet[3][0] = mesh.skeleton.joints[startJointId].position[0];
+			toRet[3][1] = mesh.skeleton.joints[startJointId].position[1];
+			toRet[3][2] = mesh.skeleton.joints[startJointId].position[2];
+			std::cout << toRet << std::endl;
+			return toRet; 
+		}; // change to use rotation of current_bone
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
@@ -159,6 +179,8 @@ int main(int argc, char* argv[])
 	auto std_camera = make_uniform("camera_position", cam_data);
 	auto std_proj = make_uniform("projection", proj_data);
 	auto std_light = make_uniform("light_position", lp_data);
+
+	auto bone_transform = make_uniform("bone_transform", b_transform);
 
 	std::function<float()> alpha_data = [&gui]() {
 		static const float transparet = 0.5; // Alpha constant goes here
@@ -246,6 +268,21 @@ int main(int argc, char* argv[])
 	// FIXME: Create the RenderPass objects for bones here.
 	//        Otherwise do whatever you like.
 
+	std::vector<glm::vec3> bone_positions;
+		for (int i = 0; i < (int)mesh.skeleton.joints.size(); i++) {
+			glm::vec4 temp = glm::vec4(mesh.skeleton.joints[i].position[0], mesh.skeleton.joints[i].position[1], mesh.skeleton.joints[i].position[2], 1);
+			bone_positions.emplace_back(temp);
+		}
+
+	RenderDataInput cylinder_pass_input;
+	cylinder_pass_input.assign(0, "vertex position", cylinder_mesh.vertices.data(), cylinder_mesh.vertices.size(), 4, GL_FLOAT);
+	cylinder_pass_input.assignIndex(cylinder_mesh.indices.data(), cylinder_mesh.indices.size(), 2);
+	RenderPass cylinder_pass(-1, cylinder_pass_input,
+			{cylinder_vertex_shader , nullptr, cylinder_fragment_shader},
+			{ std_model, std_view, std_proj, bone_transform },
+			{ "fragment_color" }
+			);
+
 	float aspect = 0.0f;
 	std::cout << "center = " << mesh.getCenter() << "\n";
 
@@ -294,6 +331,15 @@ int main(int argc, char* argv[])
 			                              GL_UNSIGNED_INT, 0));
 		}
 		draw_cylinder = (current_bone != -1 && gui.isTransparent());
+
+		if (draw_cylinder) {
+
+			cylinder_pass.setup();
+			
+			CHECK_GL_ERROR(glDrawElements(GL_LINES,
+			                              cylinder_mesh.indices.size() * 2,
+			                              GL_UNSIGNED_INT, 0));
+		}
 
 		// Then draw floor.
 		if (draw_floor) {

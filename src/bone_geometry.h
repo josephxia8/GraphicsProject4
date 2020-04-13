@@ -10,6 +10,7 @@
 #include <limits>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <mmdadapter.h>
 
 class TextureToRender;
 struct Bone;
@@ -78,7 +79,7 @@ struct Joint {
 		  init_rel_position(init_position)
 	{
 	}
-
+	
 	int joint_index;
 	int parent_index;
 	glm::vec3 position;             // position of the joint
@@ -115,11 +116,10 @@ struct LineMesh {
 
 struct Bone {
 
-	Bone(int sJoint, int eJoint){
+	Bone(int sJoint, int eJoint, glm::vec3 pos1, glm::vec3 pos2){
 		startJoint = sJoint;
 		endJoint = eJoint;
-
-		
+		boneLength = glm::length(pos1-pos2);
 	}
 
 	int startJoint;
@@ -134,11 +134,11 @@ struct Bone {
 	glm::fquat globalRotation;
 
 	LineMesh* boneLine;
-	BoundingBox bbox;
 };
 
 struct Skeleton {
 	std::vector<Joint> joints;
+	std::vector<Bone> bones;
 
 	Configuration cache;
 
@@ -161,6 +161,7 @@ struct Skeleton {
 			
 			int nextIndex = joints[index].boneChildren[i].endJoint;
 			boneIndicies.emplace_back(nextIndex, index);
+			bones.emplace_back(joints[index].boneChildren[i]);
 			std::cout << "index =  " << index << " i = " << i << " nextIndex= " << nextIndex << std::endl;
 			boneIndiciesRecursion(boneIndicies, nextIndex);
 		}

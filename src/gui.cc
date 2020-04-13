@@ -150,7 +150,7 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	r.setDirection(glm::normalize(clickPos2 - clickPos1));
 	//std::cout << "ray pos = " << r.getPosition() << " ray dir " << r.getDirection() << std::endl;
 
-	current_bone_ = 0;
+	current_bone_ = 1;
 }
 
 void GUI::mouseButtonCallback(int button, int action, int mods)

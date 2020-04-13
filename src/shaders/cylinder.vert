@@ -8,4 +8,9 @@ in vec4 vertex_position;
 
 // FIXME: Implement your vertex shader for cylinders
 // Note: you need call sin/cos to transform the input mesh to a cylinder
+
+void main() {
+	mat4 mvp = projection * view * model;
+	gl_Position = mvp * bone_transform * vertex_position;
+}
 )zzz"
