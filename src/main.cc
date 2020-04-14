@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
 			toRet[3][0] = mesh.skeleton.joints[startJointId].position[0];
 			toRet[3][1] = mesh.skeleton.joints[startJointId].position[1];
 			toRet[3][2] = mesh.skeleton.joints[startJointId].position[2];
-			std::cout << toRet << std::endl;
+			//std::cout << toRet << std::endl;
 			return toRet; 
 		}; // change to use rotation of current_bone
 

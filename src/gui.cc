@@ -131,26 +131,51 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 
 	// FIXME: highlight bones that have been moused over
 	//std::cout << "x = " << current_x_ << " y = " << current_y_ << std::endl;
-	glm::vec3 clickPos1 = glm::vec3(current_x_, current_y_, 0);
-	glm::vec3 clickPos2 = glm::vec3(current_x_, current_y_, 100);
+	glm::vec3 clickPos1 = glm::vec3(current_x_, current_y_, 0.0);
+	glm::vec3 clickPos2 = glm::vec3(current_x_, current_y_, 1.0);
 
 	clickPos1 -= eye_;
 	clickPos2 -= eye_;
 
-	//clickPos1 = glm::unProject(clickPos1, model_matrix_, projection_matrix_, viewport);
-	//clickPos2 = glm::unProject(clickPos2, model_matrix_, projection_matrix_, viewport);
+	clickPos1 = glm::unProject(clickPos1, model_matrix_, projection_matrix_, viewport);
+	clickPos2 = glm::unProject(clickPos2, model_matrix_, projection_matrix_, viewport);
 
 	ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1));
-	glm::dvec3 u = glm::dvec3(1, 0, 0);
-    glm::dvec3 v = glm::dvec3(0, 1, 0);
-	//double x = current_x_ - 0.5;
-	//double y -= current_y_ - 0.5;
-	//glm::dvec3 dir = glm::normalize(look_ + x * u + y * v);
+	glm::vec3 u = glm::vec3(1, 0, 0);
+    glm::vec3 v = glm::vec3(0, 1, 0);
+	float x = current_x_ - 0.5;
+	float y = current_y_ - 0.5;
+	glm::vec3 dir = glm::normalize(look_ + (x * u) + (y * v));
+	dir = glm::normalize(clickPos1 - clickPos2);
 	r.setPosition(eye_);
-	r.setDirection(glm::normalize(clickPos2 - clickPos1));
+	
+	r.setDirection(dir);
 	//std::cout << "ray pos = " << r.getPosition() << " ray dir " << r.getDirection() << std::endl;
 
+	float min_d = FLT_MAX;
+	int bone_num;
+	for (int i = 0; i < mesh_->skeleton.bones.size(); ++i) {
+		glm::vec3 bone_dir = mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position - mesh_->skeleton.joints[mesh_->skeleton.bones[i].endJoint].position;
+		bone_dir = glm::normalize(bone_dir);
+		glm::vec3 n = glm::cross(dir, bone_dir);
+		
+		float d = glm::dot(n, (eye_ - mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position)) / glm::length(n);
+
+		if (d < min_d)
+		{
+			min_d = d;
+			bone_num = i;
+		}
+	}
+
+	if (min_d < kCylinderRadius){
+		current_bone_ = bone_num;
+	} else {
+		current_bone_ = -1;
+	}
+
 	current_bone_ = 1;
+
 }
 
 void GUI::mouseButtonCallback(int button, int action, int mods)

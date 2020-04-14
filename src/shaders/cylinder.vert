@@ -10,7 +10,10 @@ in vec4 vertex_position;
 // Note: you need call sin/cos to transform the input mesh to a cylinder
 
 void main() {
+	float n = vertex_position[0] + .5;
+	n = n * 2 * kPi;
+
 	mat4 mvp = projection * view * model;
-	gl_Position = mvp * bone_transform * vertex_position;
+	gl_Position = mvp * bone_transform * vec4(sin(n) * .5, vertex_position[1], cos(n) * .5, vertex_position[3]);
 }
 )zzz"
