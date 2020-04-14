@@ -174,7 +174,7 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		current_bone_ = -1;
 	}
 
-	current_bone_ = 1;
+	//current_bone_ = 1;
 
 }
 

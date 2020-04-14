@@ -9,6 +9,7 @@
 #include <map>
 #include <limits>
 #include <glm/glm.hpp>
+#include <glm/gtx/io.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <mmdadapter.h>
 
@@ -120,6 +121,18 @@ struct Bone {
 		startJoint = sJoint;
 		endJoint = eJoint;
 		boneLength = glm::length(pos1-pos2);
+
+		glm::vec3 orientation = pos1-pos2;
+
+		// find global rotation
+		std::cout << "Orientation: " << orientation << std::endl;
+		float xrot = atan(orientation[1]/orientation[2]);
+		float yrot = atan(orientation[0]/orientation[2]);
+		float zrot = atan(orientation[0]/orientation[1]);
+		glm::vec3 euler = glm::vec3(xrot, yrot, zrot);
+		std::cout << "Euler: " << euler << std::endl;
+
+		globalRotation = glm::fquat(euler);
 	}
 
 	int startJoint;
@@ -162,7 +175,7 @@ struct Skeleton {
 			int nextIndex = joints[index].boneChildren[i].endJoint;
 			boneIndicies.emplace_back(nextIndex, index);
 			bones.emplace_back(joints[index].boneChildren[i]);
-			std::cout << "index =  " << index << " i = " << i << " nextIndex= " << nextIndex << std::endl;
+			//std::cout << "index =  " << index << " i = " << i << " nextIndex= " << nextIndex << std::endl;
 			boneIndiciesRecursion(boneIndicies, nextIndex);
 		}
 	}

@@ -166,11 +166,12 @@ int main(int argc, char* argv[])
 			glm::mat4 toRet = glm::mat4(1.0f);
 			toRet[1][1] *= mesh.skeleton.bones[gui.getCurrentBone()].boneLength;
 			int startJointId = mesh.skeleton.bones[gui.getCurrentBone()].startJoint;
+			glm::mat4 rot = glm::toMat4(mesh.skeleton.bones[gui.getCurrentBone()].globalRotation);
 			toRet[3][0] = mesh.skeleton.joints[startJointId].position[0];
 			toRet[3][1] = mesh.skeleton.joints[startJointId].position[1];
 			toRet[3][2] = mesh.skeleton.joints[startJointId].position[2];
 			//std::cout << toRet << std::endl;
-			return toRet; 
+			return toRet * rot; 
 		}; // change to use rotation of current_bone
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);

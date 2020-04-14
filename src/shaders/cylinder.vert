@@ -1,6 +1,7 @@
 R"zzz(#version 330 core
 uniform mat4 bone_transform; // transform the cylinder to the correct configuration
 const float kPi = 3.1415926535897932384626433832795;
+const float kCylinderRadius = 0.25;
 uniform mat4 projection;
 uniform mat4 model;
 uniform mat4 view;
@@ -14,6 +15,6 @@ void main() {
 	n = n * 2 * kPi;
 
 	mat4 mvp = projection * view * model;
-	gl_Position = mvp * bone_transform * vec4(sin(n) * .5, vertex_position[1], cos(n) * .5, vertex_position[3]);
+	gl_Position = mvp * bone_transform * vec4(sin(n) * kCylinderRadius, vertex_position[1], cos(n) * kCylinderRadius, vertex_position[3]);
 }
 )zzz"
