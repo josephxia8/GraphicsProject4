@@ -137,19 +137,10 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	clickPos1 -= eye_;
 	clickPos2 -= eye_;
 
-	clickPos1 = glm::unProject(clickPos1, model_matrix_, projection_matrix_, viewport);
-	clickPos2 = glm::unProject(clickPos2, model_matrix_, projection_matrix_, viewport);
+	clickPos1 = glm::unProject(clickPos1, model_matrix_ * view_matrix_, projection_matrix_, viewport);
+	clickPos2 = glm::unProject(clickPos2, model_matrix_ * view_matrix_, projection_matrix_, viewport);
 
-	ray r(glm::dvec3(0,0,0), glm::dvec3(0,0,0), glm::dvec3(1,1,1));
-	glm::vec3 u = glm::vec3(1, 0, 0);
-    glm::vec3 v = glm::vec3(0, 1, 0);
-	float x = current_x_ - 0.5;
-	float y = current_y_ - 0.5;
-	glm::vec3 dir = glm::normalize(look_ + (x * u) + (y * v));
-	dir = glm::normalize(clickPos1 - clickPos2);
-	r.setPosition(eye_);
-	
-	r.setDirection(dir);
+	glm::vec3 dir = glm::normalize(clickPos1 - clickPos2);
 	//std::cout << "ray pos = " << r.getPosition() << " ray dir " << r.getDirection() << std::endl;
 
 	float min_d = FLT_MAX;
@@ -174,7 +165,7 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		current_bone_ = -1;
 	}
 
-	//current_bone_ = 1;
+	current_bone_ = 1;
 
 }
 

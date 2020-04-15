@@ -12,6 +12,7 @@
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <mmdadapter.h>
+#include <cstdlib>
 
 class TextureToRender;
 struct Bone;
@@ -122,17 +123,49 @@ struct Bone {
 		endJoint = eJoint;
 		boneLength = glm::length(pos1-pos2);
 
-		glm::vec3 orientation = pos1-pos2;
+		glm::vec3 tangent = glm::normalize(pos2-pos1);
+		glm::vec3 normal = tangent;
+
+		int lowest = abs(normal[0]);
+		int which = 0;
+
+		for(int i = 1; i < 3; i++){
+			if (abs(normal[i]) < lowest) {
+				lowest = abs(normal[i]);
+				which = i;
+			}
+		}
+
+		normal = glm::vec3(0,0,0);
+		normal[which] = 1;
+
+		normal = glm::cross(tangent, normal)/glm::length(glm::cross(tangent, normal));
+		
+		glm::vec3 binormal = glm::normalize(glm::cross(tangent, normal));
+
+
+		// trying to make the orientation matrix but it's not quite right yet
+		orientation = glm::mat4(1.0);
+		orientation[2][0] = normal[0];
+		orientation[2][1] = normal[1];
+		orientation[2][2] = normal[2];
+		orientation[0][0] = binormal[0];
+		orientation[0][1] = binormal[1];
+		orientation[0][2] = binormal[2];
+		orientation[1][0] = tangent[0];
+		orientation[1][1] = tangent[1];
+		orientation[1][2] = tangent[2];
+		//orientation = glm::mat4(1.0f);
 
 		// find global rotation
 		std::cout << "Orientation: " << orientation << std::endl;
-		float xrot = atan(orientation[1]/orientation[2]);
-		float yrot = atan(orientation[0]/orientation[2]);
-		float zrot = atan(orientation[0]/orientation[1]);
+		/*float xrot = atan2(orientation[1], orientation[2]);
+		float yrot = atan2(orientation[0], orientation[2]);
+		float zrot = atan2(orientation[0], orientation[1]);
 		glm::vec3 euler = glm::vec3(xrot, yrot, zrot);
-		std::cout << "Euler: " << euler << std::endl;
+		std::cout << "Euler: " << euler << std::endl;*/
 
-		globalRotation = glm::fquat(euler);
+		//globalRotation = glm::fquat(euler);
 	}
 
 	int startJoint;
@@ -145,6 +178,8 @@ struct Bone {
 
 	glm::vec3 globalTranslation;
 	glm::fquat globalRotation;
+
+	glm::mat4 orientation;
 
 	LineMesh* boneLine;
 };
