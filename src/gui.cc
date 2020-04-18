@@ -134,38 +134,65 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	glm::vec3 clickPos1 = glm::vec3(current_x_, current_y_, 0.0);
 	glm::vec3 clickPos2 = glm::vec3(current_x_, current_y_, 1.0);
 
-	clickPos1 -= eye_;
-	clickPos2 -= eye_;
+	//clickPos1 -= eye_;
+	//clickPos2 -= eye_;
 
 	clickPos1 = glm::unProject(clickPos1, model_matrix_ * view_matrix_, projection_matrix_, viewport);
 	clickPos2 = glm::unProject(clickPos2, model_matrix_ * view_matrix_, projection_matrix_, viewport);
 
-	glm::vec3 dir = glm::normalize(clickPos1 - clickPos2);
-	//std::cout << "ray pos = " << r.getPosition() << " ray dir " << r.getDirection() << std::endl;
+	glm::vec3 dir = glm::normalize(clickPos2 - clickPos1);
+	//dir[0] *= -1;
+	
 
 	float min_d = FLT_MAX;
 	int bone_num;
+
+	glm::vec3 startPt;
+	glm::vec3 endPt;
+	glm::vec3 printc2;
+	glm::vec3 printc1;
+	
 	for (int i = 0; i < mesh_->skeleton.bones.size(); ++i) {
 		glm::vec3 bone_dir = mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position - mesh_->skeleton.joints[mesh_->skeleton.bones[i].endJoint].position;
 		bone_dir = glm::normalize(bone_dir);
 		glm::vec3 n = glm::cross(dir, bone_dir);
+		glm::vec3 p1 = clickPos1;
+		glm::vec3 p2 = mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position;
+		glm::vec3 endBone = mesh_->skeleton.joints[mesh_->skeleton.bones[i].endJoint].position;
 		
-		float d = glm::dot(n, (eye_ - mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position)) / glm::length(n);
+		glm::vec3 c2 = p2 + (glm::dot((p1 - p2), glm::cross(dir, n)) / glm::dot(bone_dir, glm::cross(dir, n))) * bone_dir;
+		glm::vec3 c1 = p1 + (glm::dot((p2 - p1), glm::cross(bone_dir, n)) / glm::dot(dir, glm::cross(bone_dir, n))) * dir;
+		float d = glm::length(c2 - c1);
 
+		//std::cout<<clickPos1 << " " << eye_ <<std::endl;
+
+		// set smallest distance bone
 		if (d < min_d)
 		{
-			min_d = d;
-			bone_num = i;
+			if((c2[0] < p2[0] && c2[0] > endBone[0]) || (c2[0] > p2[0] && c2[0] < endBone[0])){
+				min_d = d;
+				bone_num = i;		
+
+				startPt = p2;
+				endPt = endBone;
+				printc2 = c2;
+				printc1 = c1;		
+			}
 		}
 	}
 
+	// check if min_d is within the cylinder
 	if (min_d < kCylinderRadius){
 		current_bone_ = bone_num;
+
 	} else {
 		current_bone_ = -1;
 	}
 
-	current_bone_ = 1;
+	//std::cout << "x = " << current_x_ << " y = " << current_y_ << std::endl;
+	//std::cout << "ray pos = " << clickPos1 << " ray dir " << dir << " ray intersect = " << printc1 << std::endl;
+	//std::cout<< "bone = " << startPt << " " << printc2 << " " << endPt <<std::endl;
+	//current_bone_ = 1;
 
 }
 
