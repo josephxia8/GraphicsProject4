@@ -126,6 +126,20 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		look_ = glm::column(orientation_, 2);
 	} else if (drag_bone && current_bone_ != -1) {
 		// FIXME: Handle bone rotation
+		glm::vec3 mouseDirWorld = mouse_direction;
+		mouseDirWorld[2] = 1.0f;
+		mouseDirWorld = glm::unProject(mouseDirWorld, model_matrix_ * view_matrix_, projection_matrix_, viewport);
+		mouseDirWorld -= glm::unProject(glm::vec3(0.0, 0.0, 1.0), model_matrix_ * view_matrix_, projection_matrix_, viewport);
+		mouseDirWorld = glm::normalize(mouseDirWorld);
+		//std::cout << "mouse dir = " << mouseDirWorld << std::endl;
+
+		glm::vec3 rotationAxis = glm::normalize(glm::cross(mouseDirWorld, look_));
+		glm::mat4 rotMat = glm::rotate(mesh_->skeleton.bones[current_bone_].orientation, glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ , rotationAxis);
+		glm::vec3 newTangent = glm::vec3(rotMat[1][0], rotMat[1][1], rotMat[1][2]);
+		glm::vec3 newEndPos = mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].startJoint].position + (newTangent * mesh_->skeleton.bones[current_bone_].boneLength);
+		mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].endJoint].position = newEndPos;
+		mesh_->updateAnimation(0.0f);
+
 		return ;
 	}
 
@@ -145,7 +159,7 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	
 
 	float min_d = FLT_MAX;
-	int bone_num;
+	int bone_num = -1;
 
 	glm::vec3 startPt;
 	glm::vec3 endPt;
@@ -153,12 +167,12 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	glm::vec3 printc1;
 	
 	for (int i = 0; i < mesh_->skeleton.bones.size(); ++i) {
-		glm::vec3 bone_dir = mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position - mesh_->skeleton.joints[mesh_->skeleton.bones[i].endJoint].position;
+		glm::vec3 bone_dir = glm::vec3(mesh_->skeleton.bones[i].orientation[1][0], mesh_->skeleton.bones[i].orientation[1][1], mesh_->skeleton.bones[i].orientation[1][2]);
+		glm::vec3 endBone = mesh_->skeleton.joints[mesh_->skeleton.bones[i].endJoint].position;
 		bone_dir = glm::normalize(bone_dir);
 		glm::vec3 n = glm::cross(dir, bone_dir);
 		glm::vec3 p1 = clickPos1;
 		glm::vec3 p2 = mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position;
-		glm::vec3 endBone = mesh_->skeleton.joints[mesh_->skeleton.bones[i].endJoint].position;
 		
 		glm::vec3 c2 = p2 + (glm::dot((p1 - p2), glm::cross(dir, n)) / glm::dot(bone_dir, glm::cross(dir, n))) * bone_dir;
 		glm::vec3 c1 = p1 + (glm::dot((p2 - p1), glm::cross(bone_dir, n)) / glm::dot(dir, glm::cross(bone_dir, n))) * dir;
@@ -169,7 +183,9 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		// set smallest distance bone
 		if (d < min_d)
 		{
-			if((c2[0] < p2[0] && c2[0] > endBone[0]) || (c2[0] > p2[0] && c2[0] < endBone[0])){
+			if(((c2[0] <= p2[0] && c2[0] >= endBone[0]) || (c2[0] >= p2[0] && c2[0] <= endBone[0]))
+					&& ((c2[1] <= p2[1] && c2[1] >= endBone[1]) || (c2[1] >= p2[1] && c2[1] <= endBone[1]))
+					&& ((c2[2] <= p2[2] && c2[2] >= endBone[2]) || (c2[2] >= p2[2] && c2[2] <= endBone[2]))){
 				min_d = d;
 				bone_num = i;		
 
@@ -188,6 +204,8 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	} else {
 		current_bone_ = -1;
 	}
+
+	//current_bone_ = bone_num;
 
 	//std::cout << "x = " << current_x_ << " y = " << current_y_ << std::endl;
 	//std::cout << "ray pos = " << clickPos1 << " ray dir " << dir << " ray intersect = " << printc1 << std::endl;

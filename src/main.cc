@@ -163,15 +163,17 @@ int main(int argc, char* argv[])
 	std::function<glm::vec4()> lp_data = [&light_position]() { return light_position; };
 
 	std::function<glm::mat4()> b_transform = [&gui, &mesh]() { 
-			glm::mat4 toRet = glm::mat4(1.0f);
-			toRet[1][1] *= mesh.skeleton.bones[gui.getCurrentBone()].boneLength;
+			glm::mat4 translate = glm::mat4(1.0f);
+			glm::mat4 scale = glm::mat4(1.0f);
+			scale[1][1] *= mesh.skeleton.bones[gui.getCurrentBone()].boneLength;
+			//toRet[1][1] *= mesh.skeleton.bones[gui.getCurrentBone()].boneLength;
 			int startJointId = mesh.skeleton.bones[gui.getCurrentBone()].startJoint;
-			glm::mat4 rot = mesh.skeleton.bones[gui.getCurrentBone()].orientation;
-			toRet[3][0] = mesh.skeleton.joints[startJointId].position[0];
-			toRet[3][1] = mesh.skeleton.joints[startJointId].position[1];
-			toRet[3][2] = mesh.skeleton.joints[startJointId].position[2];
+			glm::mat4 rot = mesh.skeleton.bones[gui.getCurrentBone()].deformedOrientation;
+			translate[3][0] = mesh.skeleton.joints[startJointId].position[0];
+			translate[3][1] = mesh.skeleton.joints[startJointId].position[1];
+			translate[3][2] = mesh.skeleton.joints[startJointId].position[2];
 			//std::cout << toRet << std::endl;
-			return toRet * rot; 
+			return translate * rot * scale;
 		}; // change to use rotation of current_bone
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);
@@ -268,12 +270,6 @@ int main(int argc, char* argv[])
 
 	// FIXME: Create the RenderPass objects for bones here.
 	//        Otherwise do whatever you like.
-
-	std::vector<glm::vec3> bone_positions;
-		for (int i = 0; i < (int)mesh.skeleton.joints.size(); i++) {
-			glm::vec4 temp = glm::vec4(mesh.skeleton.joints[i].position[0], mesh.skeleton.joints[i].position[1], mesh.skeleton.joints[i].position[2], 1);
-			bone_positions.emplace_back(temp);
-		}
 
 	RenderDataInput cylinder_pass_input;
 	cylinder_pass_input.assign(0, "vertex position", cylinder_mesh.vertices.data(), cylinder_mesh.vertices.size(), 4, GL_FLOAT);

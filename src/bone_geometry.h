@@ -136,8 +136,8 @@ struct Bone {
 			}
 		}
 
-		normal = glm::vec3(0,0,0);
 		normal[which] = 1;
+		normal = glm::normalize(normal);
 
 		normal = glm::cross(tangent, normal)/glm::length(glm::cross(tangent, normal));
 		
@@ -155,17 +155,8 @@ struct Bone {
 		orientation[1][0] = tangent[0];
 		orientation[1][1] = tangent[1];
 		orientation[1][2] = tangent[2];
-		//orientation = glm::mat4(1.0f);
-
-		// find global rotation
-		std::cout << "Orientation: " << orientation << std::endl;
-		/*float xrot = atan2(orientation[1], orientation[2]);
-		float yrot = atan2(orientation[0], orientation[2]);
-		float zrot = atan2(orientation[0], orientation[1]);
-		glm::vec3 euler = glm::vec3(xrot, yrot, zrot);
-		std::cout << "Euler: " << euler << std::endl;*/
-
-		//globalRotation = glm::fquat(euler);
+		
+		deformedOrientation = orientation;
 	}
 
 	int startJoint;
@@ -180,6 +171,7 @@ struct Bone {
 	glm::fquat globalRotation;
 
 	glm::mat4 orientation;
+	glm::mat4 deformedOrientation;
 
 	LineMesh* boneLine;
 };
@@ -201,7 +193,6 @@ struct Skeleton {
 		int nextIndex = joints[0].boneChildren[0].endJoint;
 		//std::cout<< "First one " << nextIndex << std::endl;
 		//std::cout << "why " << boneIndicies.size() << std::endl;
-
 	}
 
 	void boneIndiciesRecursion(std::vector<glm::uvec2>& boneIndicies, int index) {
@@ -209,7 +200,6 @@ struct Skeleton {
 			
 			int nextIndex = joints[index].boneChildren[i].endJoint;
 			boneIndicies.emplace_back(nextIndex, index);
-			bones.emplace_back(joints[index].boneChildren[i]);
 			//std::cout << "index =  " << index << " i = " << i << " nextIndex= " << nextIndex << std::endl;
 			boneIndiciesRecursion(boneIndicies, nextIndex);
 		}
