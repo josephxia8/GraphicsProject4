@@ -128,13 +128,18 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		// FIXME: Handle bone rotation
 		glm::vec3 mouseDirWorld = mouse_direction;
 		mouseDirWorld[2] = 1.0f;
-		mouseDirWorld = glm::unProject(mouseDirWorld, model_matrix_ * view_matrix_, projection_matrix_, viewport);
-		mouseDirWorld -= glm::unProject(glm::vec3(0.0, 0.0, 1.0), model_matrix_ * view_matrix_, projection_matrix_, viewport);
+		mouseDirWorld = -1.0f * glm::unProject(mouseDirWorld, model_matrix_ * view_matrix_, projection_matrix_, viewport);
+		mouseDirWorld += glm::unProject(glm::vec3(0.0, 0.0, 1.0), model_matrix_ * view_matrix_, projection_matrix_, viewport);
 		mouseDirWorld = glm::normalize(mouseDirWorld);
 		//std::cout << "mouse dir = " << mouseDirWorld << std::endl;
 
 		glm::vec3 rotationAxis = glm::normalize(glm::cross(mouseDirWorld, look_));
-		glm::mat4 rotMat = glm::rotate(mesh_->skeleton.bones[current_bone_].orientation, glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ , rotationAxis);
+		//std::cout << "mouse dir = " << mouseDirWorld << " look = " << look_ << " cross = " << rotationAxis << std::endl;
+
+		//glm::mat4 rotMat = glm::rotate(mesh_->skeleton.bones[current_bone_].deformedOrientation, glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.5f, rotationAxis);
+		int rotateDir = -delta_x;
+		glm::mat4 rotMat = glm::rotate(mesh_->skeleton.bones[current_bone_].deformedOrientation, glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.1f * rotateDir, look_);
+		mesh_->skeleton.bones[current_bone_].deformedOrientation = rotMat;
 		glm::vec3 newTangent = glm::vec3(rotMat[1][0], rotMat[1][1], rotMat[1][2]);
 		glm::vec3 newEndPos = mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].startJoint].position + (newTangent * mesh_->skeleton.bones[current_bone_].boneLength);
 		mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].endJoint].position = newEndPos;
@@ -167,9 +172,10 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	glm::vec3 printc1;
 	
 	for (int i = 0; i < mesh_->skeleton.bones.size(); ++i) {
-		glm::vec3 bone_dir = glm::vec3(mesh_->skeleton.bones[i].orientation[1][0], mesh_->skeleton.bones[i].orientation[1][1], mesh_->skeleton.bones[i].orientation[1][2]);
-		glm::vec3 endBone = mesh_->skeleton.joints[mesh_->skeleton.bones[i].endJoint].position;
+		glm::vec3 bone_dir = glm::vec3(mesh_->skeleton.bones[i].deformedOrientation[1][0], mesh_->skeleton.bones[i].deformedOrientation[1][1], mesh_->skeleton.bones[i].deformedOrientation[1][2]);
 		bone_dir = glm::normalize(bone_dir);
+		glm::vec3 endBone = mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position + mesh_->skeleton.bones[i].boneLength * bone_dir; 
+		
 		glm::vec3 n = glm::cross(dir, bone_dir);
 		glm::vec3 p1 = clickPos1;
 		glm::vec3 p2 = mesh_->skeleton.joints[mesh_->skeleton.bones[i].startJoint].position;
