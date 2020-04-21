@@ -77,13 +77,12 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		else
 			roll_speed = roll_speed_;
 		// FIXME: actually roll the bone here
-		glm::vec3 tangentAxis = glm::vec3(mesh_->skeleton.bones[current_bone_].deformedOrientation[1][0], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][1], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][2]);
+		if(current_bone_ != -1){
+			glm::vec3 tangentAxis = glm::vec3(mesh_->skeleton.bones[current_bone_].deformedOrientation[1][0], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][1], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][2]);
 
-		glm::vec3 tangentAxis2 = glm::normalize(mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].endJoint].position - mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].startJoint].position);
-
-		//std::cout << "matrix one = " << tangentAxis << " subtracty one = " << tangentAxis2 << std::endl;
-		mesh_->skeleton.transformChildren(current_bone_, roll_speed, tangentAxis);
-		mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+			mesh_->skeleton.transformChildren(current_bone_, roll_speed, tangentAxis);
+			mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+		}
 
 	} else if (key == GLFW_KEY_C && action != GLFW_RELEASE) {
 		fps_mode_ = !fps_mode_;
@@ -141,15 +140,20 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		mouseDirWorld = glm::normalize(mouseDirWorld);
 		//std::cout << "mouse dir = " << mouseDirWorld << std::endl;
 
-		glm::vec3 rotationAxis = glm::normalize(glm::cross(mouseDirWorld, look_));
+		glm::vec3 rotationAxis = glm::normalize(glm::cross(mouseDirWorld, mesh_->skeleton.bones[current_bone_].getTangent()));
 		//rotationAxis = glm::normalize(glm::cross(rotationAxis, mouseDirWorld));
 		//std::cout << "mouse dir = " << mouseDirWorld << " look = " << look_ << " cross = " << rotationAxis << std::endl;
 
 		//glm::mat4 rotMat = glm::rotate(mesh_->skeleton.bones[current_bone_].deformedOrientation, glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.5f, rotationAxis);
+		
 		int rotateDir = -delta_x;
+		if (abs(delta_y) > abs(delta_x))
+		{
+			rotateDir = -delta_y;
+		}
 		
 		//float magnitude = glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.1f * rotateDir;
-		float magnitude = glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.5f;
+		float magnitude = glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.1f;
 		mesh_->skeleton.transformChildren(current_bone_, magnitude, rotationAxis);
 
 		mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
