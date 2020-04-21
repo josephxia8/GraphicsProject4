@@ -13,6 +13,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <mmdadapter.h>
 #include <cstdlib>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/rotate_vector.hpp>
 
 class TextureToRender;
 struct Bone;
@@ -118,12 +120,22 @@ struct LineMesh {
 
 struct Bone {
 
-	Bone(int sJoint, int eJoint, glm::vec3 pos1, glm::vec3 pos2){
+	Bone(int sJoint, int eJoint, glm::vec3 pos1, glm::vec3 pos2, int index){
 		startJoint = sJoint;
 		endJoint = eJoint;
+		boneIndex = index;
 		boneLength = glm::length(pos1-pos2);
 
 		glm::vec3 tangent = glm::normalize(pos2-pos1);
+
+		glm::vec3 check = pos1 + (boneLength * tangent);
+		
+		updateOrientation(tangent);
+		orientation = deformedOrientation;
+	}
+
+	void updateOrientation(glm::vec3 tangent)
+	{
 		glm::vec3 normal = tangent;
 
 		int lowest = abs(normal[0]);
@@ -143,22 +155,25 @@ struct Bone {
 		
 		glm::vec3 binormal = glm::normalize(glm::cross(tangent, normal));
 
-
-		// trying to make the orientation matrix but it's not quite right yet
-		orientation = glm::mat4(1.0);
-		orientation[2][0] = normal[0];
-		orientation[2][1] = normal[1];
-		orientation[2][2] = normal[2];
-		orientation[0][0] = binormal[0];
-		orientation[0][1] = binormal[1];
-		orientation[0][2] = binormal[2];
-		orientation[1][0] = tangent[0];
-		orientation[1][1] = tangent[1];
-		orientation[1][2] = tangent[2];
-		
-		deformedOrientation = orientation;
+		// trying to make the orientation matrix
+		deformedOrientation = glm::mat4(1.0);
+		deformedOrientation[2][0] = normal[0];
+		deformedOrientation[2][1] = normal[1];
+		deformedOrientation[2][2] = normal[2];
+		deformedOrientation[0][0] = binormal[0];
+		deformedOrientation[0][1] = binormal[1];
+		deformedOrientation[0][2] = binormal[2];
+		deformedOrientation[1][0] = tangent[0];
+		deformedOrientation[1][1] = tangent[1];
+		deformedOrientation[1][2] = tangent[2];
 	}
 
+	glm::vec3 getTangent()
+	{
+		return glm::vec3(deformedOrientation[1][0], deformedOrientation[1][1], deformedOrientation[1][2]);
+	}
+
+	int boneIndex;
 	int startJoint;
 	int endJoint;
 
@@ -202,6 +217,55 @@ struct Skeleton {
 			boneIndicies.emplace_back(nextIndex, index);
 			//std::cout << "index =  " << index << " i = " << i << " nextIndex= " << nextIndex << std::endl;
 			boneIndiciesRecursion(boneIndicies, nextIndex);
+		}
+	}
+
+	void transformChildren(int boneIndex, float magnitude, glm::vec3 axis){
+
+		/*glm::mat4 rotateMatrix = glm::mat4(1.0f);
+		rotateMatrix[0][0] = bones[boneIndex].deformedOrientation[1][0];
+		rotateMatrix[0][1] = bones[boneIndex].deformedOrientation[1][1];
+		rotateMatrix[0][2] = bones[boneIndex].deformedOrientation[1][2];
+		rotateMatrix[1][0] = bones[boneIndex].deformedOrientation[2][0];
+		rotateMatrix[1][1] = bones[boneIndex].deformedOrientation[2][1];
+		rotateMatrix[1][2] = bones[boneIndex].deformedOrientation[2][2];
+		rotateMatrix[2][0] = bones[boneIndex].deformedOrientation[0][0];
+		rotateMatrix[2][1] = bones[boneIndex].deformedOrientation[0][1];
+		rotateMatrix[2][2] = bones[boneIndex].deformedOrientation[0][2];
+		// trying to make the orientation matrix but it's not quite right yet
+		/*orientation = glm::mat4(1.0);
+		orientation[2][0] = normal[0];
+		orientation[2][1] = normal[1];
+		orientation[2][2] = normal[2];
+		orientation[0][0] = binormal[0];
+		orientation[0][1] = binormal[1];
+		orientation[0][2] = binormal[2];
+		orientation[1][0] = tangent[0];
+		orientation[1][1] = tangent[1];
+		orientation[1][2] = tangent[2];
+
+		rotateMatrix = glm::rotate(rotateMatrix, magnitude, axis);
+		bones[boneIndex].deformedOrientation[0][0] = rotateMatrix[2][0];
+		bones[boneIndex].deformedOrientation[0][1] = rotateMatrix[2][1];
+		bones[boneIndex].deformedOrientation[0][2] = rotateMatrix[2][2];
+		bones[boneIndex].deformedOrientation[1][0] = rotateMatrix[0][0];
+		bones[boneIndex].deformedOrientation[1][1] = rotateMatrix[0][1];
+		bones[boneIndex].deformedOrientation[1][2] = rotateMatrix[0][2];
+		bones[boneIndex].deformedOrientation[2][0] = rotateMatrix[1][0];
+		bones[boneIndex].deformedOrientation[2][1] = rotateMatrix[1][1];
+		bones[boneIndex].deformedOrientation[2][2] = rotateMatrix[1][2];*/
+
+		
+		//glm::vec3 newTangent = glm::vec3(rotateMatrix[0][0], rotateMatrix[0][1], rotateMatrix[0][2]);
+
+		glm::vec3 newTangent = glm::rotate(bones[boneIndex].getTangent(), magnitude, axis);
+		bones[boneIndex].updateOrientation(newTangent);
+
+		glm::vec3 newEndPos = joints[bones[boneIndex].startJoint].position + (newTangent * bones[boneIndex].boneLength);
+		joints[bones[boneIndex].endJoint].position = newEndPos;
+
+		for (int i = 0; i < joints[bones[boneIndex].endJoint].boneChildren.size(); ++i){
+			transformChildren(joints[bones[boneIndex].endJoint].boneChildren[i].boneIndex, magnitude, axis);
 		}
 	}
 };

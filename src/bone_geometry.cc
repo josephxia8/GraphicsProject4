@@ -82,7 +82,7 @@ void Mesh::loadPmd(const std::string& fn)
 		if (parentID >= 0){
 			//Joint* startJoint = &skeleton.joints[parentID];
 			//std::cout << parentID << " " << index << std::endl;
-			Bone newBone = Bone(parentID, index, skeleton.joints[parentID].position, skeleton.joints[index].position);
+			Bone newBone = Bone(parentID, index, skeleton.joints[parentID].position, skeleton.joints[index].position, skeleton.bones.size());
 			skeleton.joints[parentID].boneChildren.push_back(newBone);
 			skeleton.bones.emplace_back(newBone);
 		}

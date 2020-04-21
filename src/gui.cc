@@ -77,6 +77,14 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 		else
 			roll_speed = roll_speed_;
 		// FIXME: actually roll the bone here
+		glm::vec3 tangentAxis = glm::vec3(mesh_->skeleton.bones[current_bone_].deformedOrientation[1][0], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][1], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][2]);
+
+		glm::vec3 tangentAxis2 = glm::normalize(mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].endJoint].position - mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].startJoint].position);
+
+		//std::cout << "matrix one = " << tangentAxis << " subtracty one = " << tangentAxis2 << std::endl;
+		mesh_->skeleton.transformChildren(current_bone_, roll_speed, tangentAxis);
+		mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+
 	} else if (key == GLFW_KEY_C && action != GLFW_RELEASE) {
 		fps_mode_ = !fps_mode_;
 	} else if (key == GLFW_KEY_LEFT_BRACKET && action == GLFW_RELEASE) {
@@ -134,16 +142,18 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		//std::cout << "mouse dir = " << mouseDirWorld << std::endl;
 
 		glm::vec3 rotationAxis = glm::normalize(glm::cross(mouseDirWorld, look_));
+		//rotationAxis = glm::normalize(glm::cross(rotationAxis, mouseDirWorld));
 		//std::cout << "mouse dir = " << mouseDirWorld << " look = " << look_ << " cross = " << rotationAxis << std::endl;
 
 		//glm::mat4 rotMat = glm::rotate(mesh_->skeleton.bones[current_bone_].deformedOrientation, glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.5f, rotationAxis);
 		int rotateDir = -delta_x;
-		glm::mat4 rotMat = glm::rotate(mesh_->skeleton.bones[current_bone_].deformedOrientation, glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.1f * rotateDir, look_);
-		mesh_->skeleton.bones[current_bone_].deformedOrientation = rotMat;
-		glm::vec3 newTangent = glm::vec3(rotMat[1][0], rotMat[1][1], rotMat[1][2]);
-		glm::vec3 newEndPos = mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].startJoint].position + (newTangent * mesh_->skeleton.bones[current_bone_].boneLength);
-		mesh_->skeleton.joints[mesh_->skeleton.bones[current_bone_].endJoint].position = newEndPos;
-		mesh_->updateAnimation(0.0f);
+		
+		//float magnitude = glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.1f * rotateDir;
+		float magnitude = glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.5f;
+		mesh_->skeleton.transformChildren(current_bone_, magnitude, rotationAxis);
+
+		mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+		//animation scares me :( (joey)
 
 		return ;
 	}
