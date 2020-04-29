@@ -73,7 +73,8 @@ struct Joint {
 		  parent_index(-1),
 		  position(glm::vec3(0.0f)),
 		  init_position(glm::vec3(0.0f)),
-		  orientation_mat(glm::mat4(1.0f))
+		  orientation_mat(glm::mat4(1.0f)),
+		  orientation(glm::fquat(1.0f, 0.0f, 0.0f, 0.0f))
 	{
 	}
 	Joint(int id, glm::vec3 wcoord, int parent)
@@ -82,7 +83,8 @@ struct Joint {
 		  position(wcoord),
 		  init_position(wcoord),
 		  init_rel_position(init_position),
-		  orientation_mat(glm::mat4(1.0f))
+		  orientation_mat(glm::mat4(1.0f)),
+		  orientation(glm::fquat(1.0f, 0.0f, 0.0f, 0.0f))
 	{
 	}
 	
@@ -102,7 +104,7 @@ struct Joint {
 
 	glm::vec3 getTangent()
 	{
-		return glm::vec3(orientation_mat[2][0], orientation_mat[2][1], orientation_mat[2][2]);
+		return glm::vec3(orientation_mat[1][0], orientation_mat[1][1], orientation_mat[1][2]);
 	}
 
 	void updateOrientation(glm::vec3 tangent)
@@ -110,7 +112,7 @@ struct Joint {
 		orientation_mat = getOrientation(tangent);
 		
 		orientation = glm::quat_cast(orientation_mat);
-		//std::cout << "mat = " << orientation_mat << " quat = " << orientation << std::endl;
+		
 
 		glm::vec3 v = glm::vec3(1,2,0);
 		glm::vec3 q = glm::vec3(orientation[0], orientation[1], orientation[2]);
@@ -140,15 +142,15 @@ struct Joint {
 
 		// trying to make the orientation matrix
 		glm::mat4 toReturn = glm::mat4(1.0);
-		toReturn[1][0] = normal[0];
-		toReturn[1][1] = normal[1];
-		toReturn[1][2] = normal[2];
-		toReturn[0][0] = binormal[0];
-		toReturn[0][1] = binormal[1];
-		toReturn[0][2] = binormal[2];
-		toReturn[2][0] = tangent[0];
-		toReturn[2][1] = tangent[1];
-		toReturn[2][2] = tangent[2];
+		toReturn[2][0] = normal[0];
+		toReturn[2][1] = normal[1];
+		toReturn[2][2] = normal[2];
+		toReturn[0][0] = -binormal[0];
+		toReturn[0][1] = -binormal[1];
+		toReturn[0][2] = -binormal[2];
+		toReturn[1][0] = tangent[0];
+		toReturn[1][1] = tangent[1];
+		toReturn[1][2] = tangent[2];
 
 		return toReturn;
 	}
@@ -297,9 +299,11 @@ struct Skeleton {
 			bones[boneIndex].updateOrientation(newTangent);
 
 			// update joint orientation (deformation)
-			//joints[bones[boneIndex].endJoint].orientation = glm::quat_cast(bones[boneIndex].deformedOrientation);
-			glm::vec3 jointTangent = glm::rotate(joints[bones[boneIndex].endJoint].getTangent(), magnitude, axis);
-			joints[bones[boneIndex].endJoint].updateOrientation(jointTangent);
+			glm::vec3 oldTangent = glm::vec3(0,1,0);
+			glm::vec3 jointTangent = glm::rotate(joints[bones[boneIndex].startJoint].getTangent(), magnitude, axis);
+			joints[bones[boneIndex].startJoint].updateOrientation(jointTangent);
+			joints[bones[boneIndex].startJoint].orientation = rotationBetweenVectors(oldTangent, jointTangent);
+			//std::cout << "mat = " << joints[bones[boneIndex].startJoint].orientation_mat  << " quat = " << joints[bones[boneIndex].startJoint].orientation  << std::endl;
 
 			// update joint position
 			glm::vec3 newEndPos = joints[bones[boneIndex].startJoint].position + (newTangent * bones[boneIndex].boneLength);
@@ -310,6 +314,40 @@ struct Skeleton {
 				transformChildren(joints[bones[boneIndex].endJoint].boneChildren[i].boneIndex, magnitude, axis);
 			}
 		}
+	}
+
+	// source: http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-17-quaternions/#how-do-i-find-the-rotation-between-2-vectors-
+	glm::fquat rotationBetweenVectors(glm::vec3 start, glm::vec3 dest){
+		start = glm::normalize(start);
+		dest = glm::normalize(dest);
+
+		float cosTheta = glm::dot(start, dest);
+		glm::vec3 rotationAxis;
+
+		if (cosTheta < -1 + 0.001f){
+			// special case when vectors in opposite directions:
+			// there is no "ideal" rotation axis
+			// So guess one; any will do as long as it's perpendicular to start
+			rotationAxis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), start);
+			if (glm::length(rotationAxis) < 0.01 ) // bad luck, they were parallel, try again!
+				rotationAxis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), start);
+
+			rotationAxis = normalize(rotationAxis);
+			return glm::angleAxis(glm::radians(180.0f), rotationAxis);
+		}
+
+		rotationAxis = cross(start, dest);
+
+		float s = sqrt( (1+cosTheta)*2 );
+		float invs = 1 / s;
+
+		return glm::fquat(
+			s * 0.5f, 
+			rotationAxis.x * invs,
+			rotationAxis.y * invs,
+			rotationAxis.z * invs
+		);
+
 	}
 };
 
