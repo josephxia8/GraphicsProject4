@@ -73,8 +73,9 @@ struct Joint {
 		  parent_index(-1),
 		  position(glm::vec3(0.0f)),
 		  init_position(glm::vec3(0.0f)),
-		  orientation_mat(glm::mat4(1.0f)),
-		  orientation(glm::fquat(1.0f, 0.0f, 0.0f, 0.0f))
+		  orientation(glm::fquat(1.0f, 0.0f, 0.0f, 0.0f)),
+		  saveTangent(glm::vec3(0, 1, 0))
+
 	{
 	}
 	Joint(int id, glm::vec3 wcoord, int parent)
@@ -83,8 +84,8 @@ struct Joint {
 		  position(wcoord),
 		  init_position(wcoord),
 		  init_rel_position(init_position),
-		  orientation_mat(glm::mat4(1.0f)),
-		  orientation(glm::fquat(1.0f, 0.0f, 0.0f, 0.0f))
+		  orientation(glm::fquat(1.0f, 0.0f, 0.0f, 0.0f)),
+		  saveTangent(glm::vec3(0, 1, 0))
 	{
 	}
 	
@@ -98,62 +99,10 @@ struct Joint {
 	std::vector<int> children;
 	glm::mat4 childrenSum;
 
-	glm::mat4 orientation_mat;
+	glm::vec3 saveTangent;
 
 	std::vector<Bone> boneChildren;
 
-	glm::vec3 getTangent()
-	{
-		return glm::vec3(orientation_mat[1][0], orientation_mat[1][1], orientation_mat[1][2]);
-	}
-
-	void updateOrientation(glm::vec3 tangent)
-	{
-		orientation_mat = getOrientation(tangent);
-		
-		orientation = glm::quat_cast(orientation_mat);
-		
-
-		glm::vec3 v = glm::vec3(1,2,0);
-		glm::vec3 q = glm::vec3(orientation[0], orientation[1], orientation[2]);
-		float w = orientation[3];
-		//std::cout << "qtransform = " << v + 2.0f * cross(cross(v, q) - w*v, q) << std::endl;
-	}
-
-	glm::mat4 getOrientation(glm::vec3 tangent){
-				glm::vec3 normal = tangent;
-
-		int lowest = abs(normal[0]);
-		int which = 0;
-
-		for(int i = 1; i < 3; i++){
-			if (abs(normal[i]) < lowest) {
-				lowest = abs(normal[i]);
-				which = i;
-			}
-		}
-
-		normal[which] = 1;
-		normal = glm::normalize(normal);
-
-		normal = glm::cross(tangent, normal)/glm::length(glm::cross(tangent, normal));
-		
-		glm::vec3 binormal = glm::normalize(glm::cross(tangent, normal));
-
-		// trying to make the orientation matrix
-		glm::mat4 toReturn = glm::mat4(1.0);
-		toReturn[2][0] = normal[0];
-		toReturn[2][1] = normal[1];
-		toReturn[2][2] = normal[2];
-		toReturn[0][0] = -binormal[0];
-		toReturn[0][1] = -binormal[1];
-		toReturn[0][2] = -binormal[2];
-		toReturn[1][0] = tangent[0];
-		toReturn[1][1] = tangent[1];
-		toReturn[1][2] = tangent[2];
-
-		return toReturn;
-	}
 };
 
 struct Configuration {
@@ -299,11 +248,9 @@ struct Skeleton {
 			bones[boneIndex].updateOrientation(newTangent);
 
 			// update joint orientation (deformation)
-			glm::vec3 oldTangent = glm::vec3(0,1,0);
-			glm::vec3 jointTangent = glm::rotate(joints[bones[boneIndex].startJoint].getTangent(), magnitude, axis);
-			joints[bones[boneIndex].startJoint].updateOrientation(jointTangent);
-			joints[bones[boneIndex].startJoint].orientation = rotationBetweenVectors(oldTangent, jointTangent);
-			//std::cout << "mat = " << joints[bones[boneIndex].startJoint].orientation_mat  << " quat = " << joints[bones[boneIndex].startJoint].orientation  << std::endl;
+			glm::vec3 oldJointTangent = glm::vec3(0,1,0);
+			joints[bones[boneIndex].startJoint].saveTangent = glm::rotate(joints[bones[boneIndex].startJoint].saveTangent, magnitude, axis);
+			joints[bones[boneIndex].startJoint].orientation = rotationBetweenVectors(oldJointTangent, joints[bones[boneIndex].startJoint].saveTangent);
 
 			// update joint position
 			glm::vec3 newEndPos = joints[bones[boneIndex].startJoint].position + (newTangent * bones[boneIndex].boneLength);
@@ -325,11 +272,8 @@ struct Skeleton {
 		glm::vec3 rotationAxis;
 
 		if (cosTheta < -1 + 0.001f){
-			// special case when vectors in opposite directions:
-			// there is no "ideal" rotation axis
-			// So guess one; any will do as long as it's perpendicular to start
 			rotationAxis = glm::cross(glm::vec3(0.0f, 0.0f, 1.0f), start);
-			if (glm::length(rotationAxis) < 0.01 ) // bad luck, they were parallel, try again!
+			if (glm::length(rotationAxis) < 0.01 )
 				rotationAxis = glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), start);
 
 			rotationAxis = normalize(rotationAxis);
