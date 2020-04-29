@@ -1,4 +1,4 @@
-Assignment 4 (Progress Check)
+Assignment 4
 Amber Smith (as75287) and Joseph Xia (jx2598)
 
-See ProgressReport.txt for our progress.
+We used a Windows computer to run this.

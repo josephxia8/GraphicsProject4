@@ -61,6 +61,14 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 	}
 	if (key == GLFW_KEY_J && action == GLFW_RELEASE) {
 		//FIXME save out a screenshot using SaveJPEG
+		int width = window_width_;
+		int height = window_height_;
+		unsigned char *data = new unsigned char[3 * width * height];
+		if( data ) {
+			glReadPixels(0, 0, window_width_, window_height_, GL_RGB, GL_UNSIGNED_BYTE, data);
+		}
+		SaveJPEG("screenshot.jpg", window_width_, window_height_, data);
+
 	}
 	if (key == GLFW_KEY_S && (mods & GLFW_MOD_CONTROL)) {
 		if (action == GLFW_RELEASE)
@@ -81,7 +89,8 @@ void GUI::keyCallback(int key, int scancode, int action, int mods)
 			glm::vec3 tangentAxis = glm::vec3(mesh_->skeleton.bones[current_bone_].deformedOrientation[1][0], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][1], mesh_->skeleton.bones[current_bone_].deformedOrientation[1][2]);
 
 			mesh_->skeleton.transformChildren(current_bone_, roll_speed, tangentAxis);
-			mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+			//mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+			pose_changed_ = true;
 		}
 
 	} else if (key == GLFW_KEY_C && action != GLFW_RELEASE) {
@@ -156,7 +165,8 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 		float magnitude = glm::length(glm::vec2(delta_x, delta_y)) * rotation_speed_ * 0.1f;
 		mesh_->skeleton.transformChildren(current_bone_, magnitude, rotationAxis);
 
-		mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+		//mesh_->updateAnimation(0.0f); // this is just to get the bones to update with new positions
+		pose_changed_ = true;
 		//animation scares me :( (joey)
 
 		return ;
@@ -224,14 +234,6 @@ void GUI::mousePosCallback(double mouse_x, double mouse_y)
 	} else {
 		current_bone_ = -1;
 	}
-
-	//current_bone_ = bone_num;
-
-	//std::cout << "x = " << current_x_ << " y = " << current_y_ << std::endl;
-	//std::cout << "ray pos = " << clickPos1 << " ray dir " << dir << " ray intersect = " << printc1 << std::endl;
-	//std::cout<< "bone = " << startPt << " " << printc2 << " " << endPt <<std::endl;
-	//current_bone_ = 1;
-
 }
 
 void GUI::mouseButtonCallback(int button, int action, int mods)

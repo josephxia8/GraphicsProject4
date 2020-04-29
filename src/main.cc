@@ -176,6 +176,22 @@ int main(int argc, char* argv[])
 			return translate * rot * scale;
 		}; // change to use rotation of current_bone
 
+	std::function<std::vector<glm::mat4>()>  deformed_inv = [&mesh]() {
+		std::vector<glm::mat4> toRet = std::vector<glm::mat4>();
+		for (int i = 0; i < mesh.skeleton.joints.size(); ++i) {
+			Joint cur = mesh.skeleton.joints[i];
+			cur.childrenSum = glm::mat4(0.0);
+			for (int j = 0; j < cur.boneChildren.size(); ++j) {
+				cur.childrenSum += cur.boneChildren[j].deformedOrientation * cur.boneChildren[j].invRefPose;
+			}
+			if (cur.childrenSum[0][0] != 1 || cur.childrenSum[1][1] != 1 || cur.childrenSum[2][2] != 1 || cur.childrenSum[3][3] != 1) {
+				//std::cout << cur.childrenSum << std::endl;
+			}
+			toRet.emplace_back(cur.childrenSum);
+		}
+		return toRet;
+	};
+
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
 	auto std_view = make_uniform("view", view_data);
@@ -199,6 +215,7 @@ int main(int argc, char* argv[])
 	std::function<std::vector<glm::fquat>()> rot_data = [&mesh](){ return mesh.getCurrentQ()->rotData(); };
 	auto joint_trans = make_uniform("joint_trans", trans_data);
 	auto joint_rot = make_uniform("joint_rot", rot_data);
+	auto deform_inv = make_uniform("deform_inv", deformed_inv);
 	// FIXME: define more ShaderUniforms for RenderPass if you want to use it.
 	//        Otherwise, do whatever you like here
 
@@ -239,7 +256,7 @@ int main(int argc, char* argv[])
 			{ std_model, std_view, std_proj,
 			  std_light,
 			  std_camera, object_alpha,
-			  joint_trans, joint_rot
+			  joint_trans, joint_rot, deform_inv
 			},
 			{ "fragment_color" }
 			);
@@ -288,6 +305,11 @@ int main(int argc, char* argv[])
 	bool draw_object = true;
 	bool draw_cylinder = true;
 
+	// init undeformedVertices
+	for (int i = 0; i < mesh.vertices.size(); i++){
+		mesh.undeformedVertices.emplace_back(mesh.vertices[i]);
+	}
+
 	while (!glfwWindowShouldClose(window)) {
 		// Setup some basic window stuff.
 		glfwGetFramebufferSize(window, &window_width, &window_height);
@@ -311,6 +333,17 @@ int main(int argc, char* argv[])
 #endif
 
 		if (gui.isPoseDirty()) {
+			if (draw_object) {
+				/*
+				for(int i = 0; i < mesh.vertices.size(); ++i){
+					glm::vec4 newVertex = glm::vec4(0,0,0,0);
+					for (int j = 0; j < mesh.skeleton.bones.size(); ++j) {
+						newVertex += mesh.skeleton.meshWeights[j][i] * mesh.skeleton.bones[j].deformedOrientation * mesh.skeleton.bones[j].invRefPose * mesh.undeformedVertices[i];
+					}
+					mesh.vertices[i] = newVertex;
+				}
+				*/
+			}
 			mesh.updateAnimation();
 			gui.clearPose();
 		}
@@ -349,6 +382,7 @@ int main(int argc, char* argv[])
 
 		// Draw the model
 		if (draw_object) {
+
 			object_pass.setup();
 			int mid = 0;
 			while (object_pass.renderWithMaterial(mid))

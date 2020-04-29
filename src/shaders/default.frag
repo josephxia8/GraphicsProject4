@@ -18,6 +18,15 @@ float rand(vec2 co){
 }
 void main() {
 	vec3 texcolor = texture(textureSampler, uv_coords).xyz;
+	float intensity = dot(vertex_normal, camera_direction);
+
+	vec4 highlightColor = vec4(0.96, 0.86, 1, alpha);
+	vec4 baseColor = vec4(0.84, 0.36, 1, alpha);
+	vec4 shadowColor = vec4(0.36, 0.11, 0.44, alpha);
+
+	float is = 0.5f;
+	float ih = 0.8f;
+	
 	if (length(texcolor) == 0.0) {
 		//vec3 color = vec3(0.0, 1.0, 0.0);
 		//vec3 color = vec3(diffuse);
@@ -35,5 +44,30 @@ void main() {
 		fragment_color = vec4(texcolor.rgb, alpha);
 	}
 	//fragment_color = vec4(0.2, 0.2, 0.2, 0.5);
+
+
+	vec3 temp_color = normalize(vec3(fragment_color.x, fragment_color.y, fragment_color.z));
+	temp_color = temp_color * 0.66;
+	
+	if (intensity < is)
+	{
+		//fragment_color = shadowColor;
+		temp_color = 0.33 * normalize(temp_color);
+	}
+	else
+	if (intensity > ih)
+	{
+		//fragment_color = highlightColor;
+		temp_color = normalize(temp_color);
+	}
+	float color_mag = fragment_color.x + fragment_color.y + fragment_color.z;
+	//fragment_color = vec4(color_mag/3, color_mag/3, color_mag/3, alpha);
+
+	//fragment_color = vec4(min(temp_color.x, fragment_color.x), min(temp_color.y, fragment_color.y), min(temp_color.z, fragment_color.z), fragment_color.w);
+
+	/*if (dot(camera_direction, vertex_normal) < 0.2)
+	{
+		fragment_color = vec4(1, 0, 1, alpha);
+	}*/
 }
 )zzz"
