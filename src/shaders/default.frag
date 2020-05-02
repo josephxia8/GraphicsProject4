@@ -11,6 +11,7 @@ uniform vec4 specular;
 uniform float shininess;
 uniform float alpha;
 uniform sampler2D textureSampler;
+uniform int shader_num;
 out vec4 fragment_color;
 
 float rand(vec2 co){

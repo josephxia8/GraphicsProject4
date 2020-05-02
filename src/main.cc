@@ -5,6 +5,9 @@
 #include "render_pass.h"
 #include "config.h"
 #include "gui.h"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 #include <algorithm>
 #include <fstream>
@@ -192,6 +195,11 @@ int main(int argc, char* argv[])
 		return toRet;
 	};
 
+	// setup for choosing different shaders
+	int shaderNum = 0; // uses bit shifting as flags for different shaders
+	std::function<int()> shader_num = [&shaderNum]() { return shaderNum; };
+	
+
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
 	auto std_view = make_uniform("view", view_data);
@@ -200,6 +208,9 @@ int main(int argc, char* argv[])
 	auto std_light = make_uniform("light_position", lp_data);
 
 	auto bone_transform = make_uniform("bone_transform", b_transform);
+
+	auto shaderNumUni = make_uniform("shader_num", shader_num);
+
 
 	std::function<float()> alpha_data = [&gui]() {
 		static const float transparet = 0.5; // Alpha constant goes here
@@ -256,7 +267,7 @@ int main(int argc, char* argv[])
 			{ std_model, std_view, std_proj,
 			  std_light,
 			  std_camera, object_alpha,
-			  joint_trans, joint_rot, deform_inv
+			  joint_trans, joint_rot, deform_inv, shaderNumUni
 			},
 			{ "fragment_color" }
 			);
@@ -309,6 +320,20 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < mesh.vertices.size(); i++){
 		mesh.undeformedVertices.emplace_back(mesh.vertices[i]);
 	}
+
+	// imgui initalization
+	// Application init: create a dear imgui context, setup some options, load fonts
+     ImGui::CreateContext();
+     ImGuiIO& io = ImGui::GetIO();
+     // TODO: Set optional io.ConfigFlags values, e.g. 'io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard' to enable keyboard controls.
+     // TODO: Fill optional fields of the io structure later.
+     // TODO: Load TTF/OTF fonts if you don't want to use the default font.
+
+     // Initialize helper Platform and Renderer bindings (here we are using imgui_impl_win32.cpp and imgui_impl_dx11.cpp)
+
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	const char* glsl_version = "#version 130";
+	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	while (!glfwWindowShouldClose(window)) {
 		// Setup some basic window stuff.
@@ -394,10 +419,37 @@ int main(int argc, char* argv[])
 #endif
 		}
 
+		// Feed inputs to dear imgui, start new frame
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// Any application code here
+		ImGui::Text("Choose a shader:");
+		if (ImGui::Button("Sphericalize")){
+			if (shaderNum % 2) {
+				shaderNum = 0;
+			} else {
+				shaderNum = 1;
+			}
+		}
+    
+
+		// Render dear imgui into screen
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		//g_pSwapChain->Present(1, 0);
+
 		// Poll and swap.
 		glfwPollEvents();
 		glfwSwapBuffers(window);
 	}
+
+	// Shutdown
+	ImGui_ImplGlfw_Shutdown();
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui::DestroyContext();
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	exit(EXIT_SUCCESS);

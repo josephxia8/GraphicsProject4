@@ -1,9 +1,0 @@
-Assignment 4 Progress Report
-Amber Smith (as75287) and Joseph Xia (jx2598)
-
-We've got the skeleton to show up on the screen, and also created a tree struct for bones that starts at the root bone.
-We rendered the cylinder with scale working and orientation almost working and have very buggy bonepicking based on mouse 
-position. Our plan is to finish bone picking by the end of this week so that we can move on to bone movement and rotation 
-using recursion over the weekend and into next week.
-
-We pair programmed the whole time.
