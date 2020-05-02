@@ -62,7 +62,10 @@ void main() {
 		temp_color = normalize(temp_color);
 	}
 	float color_mag = fragment_color.x + fragment_color.y + fragment_color.z;
-	//fragment_color = vec4(color_mag/3, color_mag/3, color_mag/3, alpha);
+	
+	if ((shader_num % 12)/10 == 1){
+		fragment_color = vec4(color_mag/3, color_mag/3, color_mag/3, alpha);
+	}
 
 	//fragment_color = vec4(min(temp_color.x, fragment_color.x), min(temp_color.y, fragment_color.y), min(temp_color.z, fragment_color.z), fragment_color.w);
 

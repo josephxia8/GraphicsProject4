@@ -428,9 +428,16 @@ int main(int argc, char* argv[])
 		ImGui::Text("Choose a shader:");
 		if (ImGui::Button("Sphericalize")){
 			if (shaderNum % 2) {
-				shaderNum = 0;
+				shaderNum -= 1;
 			} else {
-				shaderNum = 1;
+				shaderNum += 1;
+			}
+		}
+		if (ImGui::Button("Color Blind Mode")){
+			if ((shaderNum % 12)/10) {
+				shaderNum -= 10;
+			} else {
+				shaderNum += 10;
 			}
 		}
     

@@ -46,7 +46,7 @@ void main() {
 	vs_camera_direction = vec4(camera_position, 1.0) - gl_Position;
 	vs_uv = uv;
 
-	if (shader_num == 1){
+	if (shader_num % 2 == 1){
 		vec3 center = vec3(0,13, 0);
 		vec3 pos = vec3(vert.x, vert.y, vert.z);
 		vec3 dir = pos - center;
