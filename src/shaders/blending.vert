@@ -7,6 +7,7 @@ uniform vec3 joint_trans[128];
 uniform vec4 joint_rot[128];
 uniform mat4 deform_inv[128];
 uniform int shader_num;
+uniform float time_since_start;
 
 in int jid0;
 in int jid1;
@@ -46,14 +47,36 @@ void main() {
 	vs_camera_direction = vec4(camera_position, 1.0) - gl_Position;
 	vs_uv = uv;
 
+	float factor = sin(time_since_start);
+	factor = factor + 1;
+	factor = factor / 2;
+	float factor_inv = 1 - factor;
+
+	// sphere deformation shader
 	if (shader_num % 2 == 1){
 		vec3 center = vec3(0,13, 0);
 		vec3 pos = vec3(vert.x, vert.y, vert.z);
 		vec3 dir = pos - center;
 		dir = normalize(dir);
-		dir = dir * 5;
+		dir = dir * 10;
 		vec3 newPos = (center + dir);
-		gl_Position = vec4(newPos.x, newPos.y, newPos.z, 1);
+		gl_Position = (factor_inv * gl_Position) + (factor * vec4(newPos.x, newPos.y, newPos.z, 1));
 	}
+
+	// wiggly shader
+	if ((shader_num % 32)/16 != 0){
+		gl_Position.y = gl_Position.y + sin(gl_Position.x + time_since_start * 5);
+	}
+
+	//miku miku bounce
+	if ((shader_num % 64)/32 != 0){
+		gl_Position.y = gl_Position.y + sin(gl_Position.z + time_since_start * 5);
+	}
+
+	//"Walk cycle" shader
+	if ((shader_num % 128)/64 != 0){
+		gl_Position.y = gl_Position.y + sin(gl_Position.x) * sin(time_since_start * 3);
+	}
+
 }
 )zzz"

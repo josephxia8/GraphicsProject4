@@ -20,6 +20,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/io.hpp>
 #include <debuggl.h>
+#include <time.h> 
 
 int window_width = 800, window_height = 600;
 const std::string window_title = "Skinning";
@@ -66,6 +67,18 @@ void ErrorCallback(int error, const char* description) {
 	std::cerr << "GLFW Error: " << description << "\n";
 }
 
+
+// Does the math for changing the shader_num flag with a button press
+void shaderButton(int button_index, int &shaderNum){
+	int index = pow(2, button_index);
+	if ((shaderNum % (index * 2))/index != 0) {
+				shaderNum -= index;
+			} else {
+				shaderNum += index;
+			}
+			std::cout << shaderNum << std::endl;
+}
+
 GLFWwindow* init_glefw()
 {
 	if (!glfwInit())
@@ -100,6 +113,10 @@ int main(int argc, char* argv[])
 	}
 	GLFWwindow *window = init_glefw();
 	GUI gui(window);
+
+	clock_t start_time;
+  	start_time = clock();
+	float since_start = 0;
 
 	std::vector<glm::vec4> floor_vertices;
 	std::vector<glm::uvec3> floor_faces;
@@ -198,6 +215,8 @@ int main(int argc, char* argv[])
 	// setup for choosing different shaders
 	int shaderNum = 0; // uses bit shifting as flags for different shaders
 	std::function<int()> shader_num = [&shaderNum]() { return shaderNum; };
+
+	std::function<float()> time_since_start = [&since_start]() {return since_start; };
 	
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);
@@ -210,6 +229,7 @@ int main(int argc, char* argv[])
 	auto bone_transform = make_uniform("bone_transform", b_transform);
 
 	auto shaderNumUni = make_uniform("shader_num", shader_num);
+	auto timeSinceStart = make_uniform("time_since_start", time_since_start);
 
 
 	std::function<float()> alpha_data = [&gui]() {
@@ -267,7 +287,7 @@ int main(int argc, char* argv[])
 			{ std_model, std_view, std_proj,
 			  std_light,
 			  std_camera, object_alpha,
-			  joint_trans, joint_rot, deform_inv, shaderNumUni
+			  joint_trans, joint_rot, deform_inv, shaderNumUni, timeSinceStart
 			},
 			{ "fragment_color" }
 			);
@@ -357,6 +377,8 @@ int main(int argc, char* argv[])
 		std_model->bind(0);
 #endif
 
+		since_start = ((float)clock() - (float)start_time)/CLOCKS_PER_SEC;
+
 		if (gui.isPoseDirty()) {
 			if (draw_object) {
 				/*
@@ -427,19 +449,27 @@ int main(int argc, char* argv[])
 		// Any application code here
 		ImGui::Text("Choose a shader:");
 		if (ImGui::Button("Sphericalize")){
-			if (shaderNum % 2) {
-				shaderNum -= 1;
-			} else {
-				shaderNum += 1;
-			}
+			shaderButton(0, shaderNum);
 		}
 		if (ImGui::Button("Color Blind Mode")){
-			if ((shaderNum % 12)/10) {
-				shaderNum -= 10;
-			} else {
-				shaderNum += 10;
-			}
+			shaderButton(1, shaderNum);
 		}
+		if (ImGui::Button("Outline")){
+			shaderButton(2, shaderNum);
+		}
+		if (ImGui::Button("Metalify")){
+			shaderButton(3, shaderNum);
+		}
+		if (ImGui::Button("Miku Miku Rave!")){
+			shaderButton(4, shaderNum);
+		}
+		if (ImGui::Button("Miku Miku Bounce!")){
+			shaderButton(5, shaderNum);
+		}
+		if (ImGui::Button("walk cycle (no animation required)")){
+			shaderButton(6, shaderNum);
+		}
+
     
 
 		// Render dear imgui into screen
@@ -461,3 +491,4 @@ int main(int argc, char* argv[])
 	glfwTerminate();
 	exit(EXIT_SUCCESS);
 }
+

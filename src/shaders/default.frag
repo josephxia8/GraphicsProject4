@@ -45,33 +45,38 @@ void main() {
 		fragment_color = vec4(texcolor.rgb, alpha);
 	}
 	//fragment_color = vec4(0.2, 0.2, 0.2, 0.5);
-
-
-	vec3 temp_color = normalize(vec3(fragment_color.x, fragment_color.y, fragment_color.z));
-	temp_color = temp_color * 0.66;
 	
-	if (intensity < is)
-	{
-		//fragment_color = shadowColor;
-		temp_color = 0.33 * normalize(temp_color);
-	}
-	else
-	if (intensity > ih)
-	{
-		//fragment_color = highlightColor;
-		temp_color = normalize(temp_color);
-	}
+	// black and white shader
 	float color_mag = fragment_color.x + fragment_color.y + fragment_color.z;
-	
-	if ((shader_num % 12)/10 == 1){
+	if ((shader_num % 4)/2 != 0){
 		fragment_color = vec4(color_mag/3, color_mag/3, color_mag/3, alpha);
 	}
 
-	//fragment_color = vec4(min(temp_color.x, fragment_color.x), min(temp_color.y, fragment_color.y), min(temp_color.z, fragment_color.z), fragment_color.w);
+	// outline shader
+	if ((shader_num % 8)/4 != 0){
+		if (dot(camera_direction, vertex_normal) < 0.2)
+		{
+			fragment_color = vec4(1, 0, 1, alpha);
+		}
+	}
 
-	/*if (dot(camera_direction, vertex_normal) < 0.2)
-	{
-		fragment_color = vec4(1, 0, 1, alpha);
-	}*/
+	// metal shader (failed toon shader)
+	if ((shader_num % 16)/8 == 1){
+		vec3 temp_color = normalize(vec3(fragment_color.x, fragment_color.y, fragment_color.z));
+		temp_color = temp_color * 0.66;
+		
+		if (intensity < is)
+		{
+			//fragment_color = shadowColor;
+			temp_color = 0.33 * normalize(temp_color);
+		}
+		else
+		if (intensity > ih)
+		{
+			//fragment_color = highlightColor;
+			temp_color = normalize(temp_color);
+		}
+		fragment_color = vec4(min(temp_color.x, fragment_color.x), min(temp_color.y, fragment_color.y), min(temp_color.z, fragment_color.z), fragment_color.w);
+	}
 }
 )zzz"
