@@ -469,6 +469,17 @@ int main(int argc, char* argv[])
 		if (ImGui::Button("walk cycle (no animation required)")){
 			shaderButton(6, shaderNum);
 		}
+		if (ImGui::Button("Toonify")){
+			shaderButton(7, shaderNum);
+		}
+		/*
+		if (ImGui::Button("Cubify")){
+			shaderButton(8, shaderNum);
+		}
+		*/
+		if (ImGui::Button("Miku says gay rights!")){
+			shaderButton(9, shaderNum);
+		}
 
     
 

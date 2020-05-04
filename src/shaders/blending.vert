@@ -63,12 +63,26 @@ void main() {
 		gl_Position = (factor_inv * gl_Position) + (factor * vec4(newPos.x, newPos.y, newPos.z, 1));
 	}
 
+	// cube deformation shader
+	/*if ((shader_num % 512)/256 == 1){
+		vec3 center = vec3(0,13, 0);
+		vec3 pos = vec3(vert.x, vert.y, vert.z);
+		vec3 dir = pos - center;
+		float f = max(dir.x, dir.y);
+		f = max(f, dir.z);
+		f = 1/f; 
+		dir = f * dir;
+		dir = dir * 4;
+		vec3 newPos = (center + dir);
+		gl_Position = (factor_inv * gl_Position) + (factor * vec4(newPos.x, newPos.y, newPos.z, 1));
+	}*/
+
 	// wiggly shader
 	if ((shader_num % 32)/16 != 0){
 		gl_Position.y = gl_Position.y + sin(gl_Position.x + time_since_start * 5);
 	}
 
-	//miku miku bounce
+	//miku miku bounce (wiggly in the z direction)
 	if ((shader_num % 64)/32 != 0){
 		gl_Position.y = gl_Position.y + sin(gl_Position.z + time_since_start * 5);
 	}
