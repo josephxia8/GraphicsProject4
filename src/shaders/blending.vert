@@ -92,5 +92,9 @@ void main() {
 		gl_Position.y = gl_Position.y + sin(gl_Position.x) * sin(time_since_start * 3);
 	}
 
+	if ((shader_num % 4096)/2048 != 0){
+		gl_Position.y = gl_Position.y + gl_Position.y * (.5 + .5 * sin(time_since_start * 3));
+	}
+
 }
 )zzz"

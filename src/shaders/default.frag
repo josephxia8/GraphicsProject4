@@ -84,7 +84,7 @@ void main() {
 	}
 
 	// flat shader
-	if ((shader_num % 2048)/1024 != 0){
+	if ((shader_num % 2048)/1024 != 0 || ((shader_num % 8192)/4096 != 0)){
 		fragment_color = vec4(diffuse.x, diffuse.y, diffuse.z, fragment_color.w);
 	}
 

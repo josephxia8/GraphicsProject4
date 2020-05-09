@@ -61,6 +61,16 @@ const char* cylinder_fragment_shader =
 #include "shaders/cylinder.frag"
 ;
 
+const char* fur_vertex_shader =
+#include "shaders/fur.vert"
+;
+
+const char* fur_fragment_shader =
+#include "shaders/fur.frag"
+;
+
+
+
 // FIXME: Add more shaders here.
 
 void ErrorCallback(int error, const char* description) {
@@ -124,11 +134,16 @@ int main(int argc, char* argv[])
 
 	LineMesh cylinder_mesh;
 	LineMesh axes_mesh;
+	LineMesh triangle_mesh;
 
 	// FIXME: we already created meshes for cylinders. Use them to render
 	//        the cylinder and axes if required by the assignment.
 	create_cylinder_mesh(cylinder_mesh);
 	create_axes_mesh(axes_mesh);
+
+	std::vector<glm::vec4> triangle_vertices;
+	std::vector<glm::uvec3> triangle_faces;
+	create_triangle_mesh(triangle_vertices, triangle_faces);
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -182,6 +197,7 @@ int main(int argc, char* argv[])
 	std::function<glm::vec3()> cam_data = [&gui](){ return gui.getCamera(); };
 	std::function<glm::vec4()> lp_data = [&light_position]() { return light_position; };
 
+	// set transform of the bone (cylinder)
 	std::function<glm::mat4()> b_transform = [&gui, &mesh]() { 
 			glm::mat4 translate = glm::mat4(1.0f);
 			glm::mat4 scale = glm::mat4(1.0f);
@@ -194,7 +210,23 @@ int main(int argc, char* argv[])
 			translate[3][2] = mesh.skeleton.joints[startJointId].position[2];
 			//std::cout << toRet << std::endl;
 			return translate * rot * scale;
-		}; // change to use rotation of current_bone
+	};
+
+	// set transform of the fur
+	std::function<glm::mat4()> f_transform = [&gui, &mesh]() {
+			int pos = 1; 
+			glm::mat4 translate = glm::mat4(1.0f);
+			glm::mat4 scale = glm::mat4(1.0f);
+			scale[1][1] *= mesh.skeleton.bones[pos].boneLength;
+			
+			int startJointId = mesh.skeleton.bones[pos].startJoint;
+			glm::mat4 rot = mesh.skeleton.bones[pos].deformedOrientation;
+			translate[3][0] = mesh.skeleton.joints[startJointId].position[0];
+			translate[3][1] = mesh.skeleton.joints[startJointId].position[1];
+			translate[3][2] = mesh.skeleton.joints[startJointId].position[2];
+			//std::cout << toRet << std::endl;
+			return translate * rot * scale;
+	};
 
 	std::function<std::vector<glm::mat4>()>  deformed_inv = [&mesh]() {
 		std::vector<glm::mat4> toRet = std::vector<glm::mat4>();
@@ -227,6 +259,7 @@ int main(int argc, char* argv[])
 	auto std_light = make_uniform("light_position", lp_data);
 
 	auto bone_transform = make_uniform("bone_transform", b_transform);
+	auto fur_transform = make_uniform("bone_transform", f_transform);
 
 	auto shaderNumUni = make_uniform("shader_num", shader_num);
 	auto timeSinceStart = make_uniform("time_since_start", time_since_start);
@@ -328,6 +361,16 @@ int main(int argc, char* argv[])
 			{ "fragment_color" }
 			);
 
+	// fur pass
+	RenderDataInput fur_pass_input;
+	fur_pass_input.assign(0, "vertex position", triangle_vertices.data(), triangle_vertices.size(), 4, GL_FLOAT);
+	fur_pass_input.assignIndex(triangle_faces.data(), triangle_faces.size(), 3);
+	RenderPass fur_pass(-1, fur_pass_input,
+			{ fur_vertex_shader, geometry_shader, fur_fragment_shader},
+			{ floor_model, std_view, std_proj, std_light },
+			{ "fragment_color" }
+			);
+
 	float aspect = 0.0f;
 	std::cout << "center = " << mesh.getCenter() << "\n";
 
@@ -418,6 +461,16 @@ int main(int argc, char* argv[])
 			                              GL_UNSIGNED_INT, 0));
 		}
 
+		// setup for fur render pass
+		if ((shaderNum % 8192)/4096 == 1) {
+
+			fur_pass.setup();
+			
+			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES,
+			                              triangle_faces.size() * 3,
+			                              GL_UNSIGNED_INT, 0));
+		}
+
 		// Then draw floor.
 		if (draw_floor) {
 			floor_pass.setup();
@@ -482,6 +535,12 @@ int main(int argc, char* argv[])
 		}
 		if (ImGui::Button("Flat")){
 			shaderButton(10, shaderNum);
+		}
+		if (ImGui::Button("Loooong")){
+			shaderButton(11, shaderNum);
+		}
+		if (ImGui::Button("Fur")){
+			shaderButton(12, shaderNum);
 		}
 
     
