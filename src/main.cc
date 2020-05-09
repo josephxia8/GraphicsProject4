@@ -480,6 +480,9 @@ int main(int argc, char* argv[])
 		if (ImGui::Button("Miku says gay rights!")){
 			shaderButton(9, shaderNum);
 		}
+		if (ImGui::Button("Flat")){
+			shaderButton(10, shaderNum);
+		}
 
     
 

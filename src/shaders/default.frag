@@ -36,12 +36,6 @@ void main() {
 		fragment_color = vec4(texcolor.rgb, alpha);
 	}
 
-	// black and white shader
-	float color_mag = fragment_color.x + fragment_color.y + fragment_color.z;
-	if ((shader_num % 4)/2 != 0){
-		fragment_color = vec4(color_mag/3, color_mag/3, color_mag/3, alpha);
-	}
-
 	// metal shader (failed toon shader)
 	if ((shader_num % 16)/8 == 1){
 		vec3 temp_color = vec3(fragment_color);
@@ -87,6 +81,17 @@ void main() {
 		vec4 d = vec4(0.3, 0.86, 0.96, alpha);
 		fragment_color = a + b * cos(2 * 3.141592645 * (c * t_lambertian + d) + time_since_start * 3);
 		fragment_color.w = alpha;
+	}
+
+	// flat shader
+	if ((shader_num % 2048)/1024 != 0){
+		fragment_color = vec4(diffuse.x, diffuse.y, diffuse.z, fragment_color.w);
+	}
+
+	// black and white shader
+	float color_mag = fragment_color.x + fragment_color.y + fragment_color.z;
+	if ((shader_num % 4)/2 != 0){
+		fragment_color = vec4(color_mag/3, color_mag/3, color_mag/3, alpha);
 	}
 
 	// outline shader
