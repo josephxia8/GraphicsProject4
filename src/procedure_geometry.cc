@@ -69,8 +69,8 @@ void create_axes_mesh(LineMesh& axes_mesh)
 
 void create_triangle_mesh(std::vector<glm::vec4>& triangle_vertices, std::vector<glm::uvec3>& triangle_faces)
 {
-	triangle_vertices.push_back(glm::vec4(-5.0f, 0.0f, 0.0f, 1.0f));
-	triangle_vertices.push_back(glm::vec4(5.0f, 0.0f, 0.0f, 1.0f));
-	triangle_vertices.push_back(glm::vec4(0.0f, 10.0f, 0.0f, 1.0f));
+	triangle_vertices.push_back(glm::vec4(-1.0f, 0.0f, 0.0f, 1.0f));
+	triangle_vertices.push_back(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	triangle_vertices.push_back(glm::vec4(0.0f, 1.5f, 0.0f, 1.0f));
 	triangle_faces.push_back(glm::uvec3(0, 1, 2));
 }

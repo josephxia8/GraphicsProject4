@@ -65,6 +65,10 @@ const char* fur_vertex_shader =
 #include "shaders/fur.vert"
 ;
 
+const char* fur_geometry_shader =
+#include "shaders/fur.geom"
+;
+
 const char* fur_fragment_shader =
 #include "shaders/fur.frag"
 ;
@@ -249,7 +253,10 @@ int main(int argc, char* argv[])
 	std::function<int()> shader_num = [&shaderNum]() { return shaderNum; };
 
 	std::function<float()> time_since_start = [&since_start]() {return since_start; };
-	
+
+	std::function<glm::fquat()> tri_rot = [&gui, &mesh]() {
+		return mesh.skeleton.rotationBetweenVectors(glm::vec3(0,0,-1), gui.getCameraDirection());
+	};
 
 	auto std_model = std::make_shared<ShaderUniform<const glm::mat4*>>("model", model_data);
 	auto floor_model = make_uniform("model", identity_mat);
@@ -259,19 +266,20 @@ int main(int argc, char* argv[])
 	auto std_light = make_uniform("light_position", lp_data);
 
 	auto bone_transform = make_uniform("bone_transform", b_transform);
-	auto fur_transform = make_uniform("bone_transform", f_transform);
+	//auto fur_transform = make_uniform("bone_transform", f_transform);
 
 	auto shaderNumUni = make_uniform("shader_num", shader_num);
 	auto timeSinceStart = make_uniform("time_since_start", time_since_start);
+	auto triRot = make_uniform("tri_rot", tri_rot);
 
 
 	std::function<float()> alpha_data = [&gui]() {
-		static const float transparet = 0.5; // Alpha constant goes here
-		static const float non_transparet = 1.0;
+		static const float transparent = 0.5; // Alpha constant goes here
+		static const float non_transparent = 1.0;
 		if (gui.isTransparent())
-			return transparet;
+			return transparent;
 		else
-			return non_transparet;
+			return non_transparent;
 	};
 	auto object_alpha = make_uniform("alpha", alpha_data);
 
@@ -361,15 +369,6 @@ int main(int argc, char* argv[])
 			{ "fragment_color" }
 			);
 
-	// fur pass
-	RenderDataInput fur_pass_input;
-	fur_pass_input.assign(0, "vertex position", triangle_vertices.data(), triangle_vertices.size(), 4, GL_FLOAT);
-	fur_pass_input.assignIndex(triangle_faces.data(), triangle_faces.size(), 3);
-	RenderPass fur_pass(-1, fur_pass_input,
-			{ fur_vertex_shader, geometry_shader, fur_fragment_shader},
-			{ floor_model, std_view, std_proj, std_light },
-			{ "fragment_color" }
-			);
 
 	float aspect = 0.0f;
 	std::cout << "center = " << mesh.getCenter() << "\n";
@@ -463,12 +462,69 @@ int main(int argc, char* argv[])
 
 		// setup for fur render pass
 		if ((shaderNum % 8192)/4096 == 1) {
+			int numtriangles = 0;
+			for(int i = 1026; i < 6397; i+=10){
+				//int i = 0;
+				glm::vec4 face_normal = mesh.vertex_normals[mesh.faces[i][0]];
+				face_normal += mesh.vertex_normals[mesh.faces[i][1]];
+				face_normal += mesh.vertex_normals[mesh.faces[i][2]];
+				face_normal = (1.0f/3.0f) * face_normal;
+				glm::vec3 face_normal2 = glm::normalize(glm::vec3(face_normal[0], face_normal[1], face_normal[2]));
 
-			fur_pass.setup();
-			
-			CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES,
-			                              triangle_faces.size() * 3,
-			                              GL_UNSIGNED_INT, 0));
+				if (glm::dot(glm::normalize(gui.getCameraDirection()), face_normal2) < 0.000000001)
+				{
+					numtriangles++;
+					glm::vec4 pos = mesh.vertices[mesh.faces[i][0]];
+					pos += mesh.vertices[mesh.faces[i][1]];
+					pos += mesh.vertices[mesh.faces[i][2]];
+					//std::cout<< "pos = " << pos << " averaged " << ((1.0f/3.0f) * pos) << std::endl;
+					pos = (1.0f/3.0f) * pos;
+					glm::vec3 color = glm::vec3(0,0,0);
+					for (const auto& ma : mesh.materials) {
+						//std::cerr << "Use Material from " << ma.offset << " size: " << ma.nfaces << std::endl;
+						if (i >= ma.offset && i < ma.offset + ma.nfaces){
+							color = ma.diffuse;
+							break;
+						}
+					}
+					std::vector<glm::vec4> facePos = std::vector<glm::vec4>();
+					std::vector<glm::fquat> faceRot = std::vector<glm::fquat>();
+					std::vector<glm::vec3> color_data = std::vector<glm::vec3>();
+					for(int j = 0; j < triangle_vertices.size(); ++j){
+						//triangle_vertices[j] += pos;
+						facePos.emplace_back(pos);
+
+						//v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz) qtransform
+						glm::fquat rot1 = mesh.skeleton.rotationBetweenVectors(glm::vec3(0,0,-1), gui.getCameraDirection());
+						glm::vec3 up = glm::vec3(0,1,0);
+						up = up + 2.0f * glm::cross(glm::cross(up, glm::vec3(rot1[0], rot1[1], rot1[2])) - rot1[3] * up, glm::vec3(rot1[0], rot1[1], rot1[2]));
+						glm::fquat rot2 = mesh.skeleton.rotationBetweenVectors(up, face_normal2);
+						
+						faceRot.emplace_back(rot2);
+						color_data.emplace_back(color);
+					}
+
+					//glm::lookAt()
+					RenderDataInput fur_pass_input;
+					fur_pass_input.assign(0, "vertex position", triangle_vertices.data(), triangle_vertices.size(), 4, GL_FLOAT);
+					fur_pass_input.assignIndex(triangle_faces.data(), triangle_faces.size(), 3);
+					fur_pass_input.assign(3, "color", color_data.data(), color_data.size(), 3, GL_FLOAT);
+					fur_pass_input.assign(4, "face_pos", facePos.data(), facePos.size(), 4, GL_FLOAT);
+					fur_pass_input.assign(5, "face_rot", faceRot.data(), faceRot.size(), 4, GL_FLOAT);
+					RenderPass fur_pass(-1, fur_pass_input,
+							{ fur_vertex_shader, fur_geometry_shader, fur_fragment_shader},
+							{ std_model, std_view, std_proj, std_light, triRot },
+							{ "fragment_color" }
+							);
+					
+					fur_pass.setup();
+					
+					CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES,
+												triangle_faces.size() * 3,
+												GL_UNSIGNED_INT, 0));
+				}
+			}
+			//std::cout<<"Num triangles: " << numtriangles << std::endl;
 		}
 
 		// Then draw floor.
