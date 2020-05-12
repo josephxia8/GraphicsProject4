@@ -461,9 +461,9 @@ int main(int argc, char* argv[])
 		}
 
 		// setup for fur render pass
-		if ((shaderNum % 8192)/4096 == 1) {
+		if ((shaderNum % 8192)/4096 == 1 && mesh.materials.size() > 1) {
 			int numtriangles = 0;
-			for(int i = 1026; i < 6397; i+=10){
+			for(int i = mesh.materials[1].offset; i < (mesh.materials[1].offset + mesh.materials[1].nfaces); i+=10){
 				//int i = 0;
 				glm::vec4 face_normal = mesh.vertex_normals[mesh.faces[i][0]];
 				face_normal += mesh.vertex_normals[mesh.faces[i][1]];
