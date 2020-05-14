@@ -148,6 +148,13 @@ int main(int argc, char* argv[])
 	std::vector<glm::vec4> triangle_vertices;
 	std::vector<glm::uvec3> triangle_faces;
 	create_triangle_mesh(triangle_vertices, triangle_faces);
+	std::vector<glm::uvec2> outline_indicies = std::vector<glm::uvec2>();
+	outline_indicies.push_back(glm::uvec2(0,1));
+	outline_indicies.push_back(glm::uvec2(1,2));
+	outline_indicies.push_back(glm::uvec2(2,0));
+	outline_indicies.push_back(glm::uvec2(3,4));
+	outline_indicies.push_back(glm::uvec2(4,5));
+	outline_indicies.push_back(glm::uvec2(5,3));
 
 	Mesh mesh;
 	mesh.loadPmd(argv[1]);
@@ -463,7 +470,7 @@ int main(int argc, char* argv[])
 		// setup for fur render pass
 		if ((shaderNum % 8192)/4096 == 1 && mesh.materials.size() > 1) {
 			int numtriangles = 0;
-			for(int i = mesh.materials[1].offset; i < (mesh.materials[1].offset + mesh.materials[1].nfaces); i+=10){
+			for(int i = mesh.materials[1].offset; i < (mesh.materials[1].offset + mesh.materials[1].nfaces); i+=5){
 				//int i = 0;
 				glm::vec4 face_normal = mesh.vertex_normals[mesh.faces[i][0]];
 				face_normal += mesh.vertex_normals[mesh.faces[i][1]];
@@ -490,6 +497,7 @@ int main(int argc, char* argv[])
 					std::vector<glm::vec4> facePos = std::vector<glm::vec4>();
 					std::vector<glm::fquat> faceRot = std::vector<glm::fquat>();
 					std::vector<glm::vec3> color_data = std::vector<glm::vec3>();
+					
 					for(int j = 0; j < triangle_vertices.size(); ++j){
 						//triangle_vertices[j] += pos;
 						facePos.emplace_back(pos);
@@ -504,6 +512,7 @@ int main(int argc, char* argv[])
 						color_data.emplace_back(color);
 					}
 
+					
 					//glm::lookAt()
 					RenderDataInput fur_pass_input;
 					fur_pass_input.assign(0, "vertex position", triangle_vertices.data(), triangle_vertices.size(), 4, GL_FLOAT);
@@ -518,10 +527,32 @@ int main(int argc, char* argv[])
 							);
 					
 					fur_pass.setup();
+					/*
+					// outline for fur pass
+					RenderDataInput fur_outline_pass_input;
+					fur_outline_pass_input.assign(0, "vertex position", triangle_vertices.data(), triangle_vertices.size(), 4, GL_FLOAT);
+					fur_outline_pass_input.assignIndex(outline_indicies.data(), outline_indicies.size(), 2);
+					fur_outline_pass_input.assign(3, "color", color_data.data(), color_data.size(), 3, GL_FLOAT);
+					fur_outline_pass_input.assign(4, "face_pos", facePos.data(), facePos.size(), 4, GL_FLOAT);
+					fur_outline_pass_input.assign(5, "face_rot", faceRot.data(), faceRot.size(), 4, GL_FLOAT);
+					RenderPass fur_outline_pass(-1, fur_outline_pass_input,
+							{ fur_vertex_shader, nullptr, bone_fragment_shader},
+							{ std_model, std_view, std_proj, std_light, triRot },
+							{ "fragment_color" }
+							);
+					fur_outline_pass.setup();
+
+					*/
+					
 					
 					CHECK_GL_ERROR(glDrawElements(GL_TRIANGLES,
 												triangle_faces.size() * 3,
 												GL_UNSIGNED_INT, 0));
+
+					/*CHECK_GL_ERROR(glDrawElements(GL_LINES,
+			                              outline_indicies.size() * 2,
+			                              GL_UNSIGNED_INT, 0));*/
+												
 				}
 			}
 			//std::cout<<"Num triangles: " << numtriangles << std::endl;
